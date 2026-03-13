@@ -10,7 +10,6 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css">
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js"></script>
-    <script id="search-js" defer src="https://api.mapbox.com/search-js/v1.5.0/web.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
 </head>
@@ -30,10 +29,12 @@
             <button type="button" class="profile-btn" data-profile="cycling">Cycling</button>
         </div>
         <div class="address-wrap">
-            <mapbox-search-box id="start-search" access-token="pk.eyJ1IjoibGVuYWFybXMiLCJhIjoiY205N3V0aGw2MGJnMDJsb2tiNDB1czFzaiJ9.bTzeSaHAUueU3tJHFNXyAA" placeholder="Starting Address" proximity="-43.23,-22.93"></mapbox-search-box>
+            <input type="text" id="start" placeholder="Starting Address" autocomplete="off">
+            <div class="search-results" id="start-results"></div>
         </div>
         <div class="address-wrap">
-            <mapbox-search-box id="end-search" access-token="pk.eyJ1IjoibGVuYWFybXMiLCJhIjoiY205N3V0aGw2MGJnMDJsb2tiNDB1czFzaiJ9.bTzeSaHAUueU3tJHFNXyAA" placeholder="Destination Address" proximity="-43.23,-22.93"></mapbox-search-box>
+            <input type="text" id="end" placeholder="Destination Address" autocomplete="off">
+            <div class="search-results" id="end-results"></div>
         </div>
         <button id="calc-route">Visualize Route</button>
         <div class="annotations-section">
@@ -89,6 +90,7 @@
             errEnd: 'Could not find the destination address. Please check it and try again.',
             errNoRoute: 'No route found between these two addresses. Try a different travel mode or addresses.',
             annotationsHeading: 'Annotation colors',
+            routeHint: 'Search, select a result in each box (click or Enter), then click Visualize Route.',
             labelPlaceholder0: 'e.g. Residents',
             labelPlaceholder1: 'e.g. Taxi drivers',
             labelPlaceholder2: 'e.g. Delivery workers',
@@ -109,6 +111,7 @@
             errEnd: 'Não foi possível encontrar o endereço de destino. Verifique e tente novamente.',
             errNoRoute: 'Nenhuma rota encontrada entre esses endereços. Tente outro modo de viagem ou endereços.',
             annotationsHeading: 'Cores das anotações',
+            routeHint: 'Pesquise, selecione um resultado em cada caixa (clique ou Enter), depois clique em Visualizar Rota.',
             labelPlaceholder0: 'ex: Residentes',
             labelPlaceholder1: 'ex: Motoristas de táxi',
             labelPlaceholder2: 'ex: Entregadores',
@@ -123,10 +126,10 @@
     function applyLanguage(lang) {
         const t = translations[lang];
         document.getElementById('header-text').textContent = t.header;
-        var startSearch = document.getElementById('start-search');
-        var endSearch = document.getElementById('end-search');
-        if (startSearch) startSearch.setAttribute('placeholder', t.startPlaceholder);
-        if (endSearch) endSearch.setAttribute('placeholder', t.endPlaceholder);
+        var startInput = document.getElementById('start');
+        var endInput = document.getElementById('end');
+        if (startInput) startInput.placeholder = t.startPlaceholder;
+        if (endInput) endInput.placeholder = t.endPlaceholder;
         document.querySelector('.profile-btn[data-profile="driving"]').textContent = t.driving;
         document.querySelector('.profile-btn[data-profile="walking"]').textContent = t.walking;
         document.querySelector('.profile-btn[data-profile="cycling"]').textContent = t.cycling;
@@ -226,7 +229,8 @@
         source.setData({ type: 'FeatureCollection', features: draw.getAll() });
     }
 
-    draw.on('create', (e) => {
+    // Listen for draw events on the map (Mapbox Draw does not expose draw.on)
+    map.on('draw.create', (e) => {
         e.features.forEach(f => {
             f.properties.colorIndex = selectedColorIndex;
             f.properties.label = getSelectedLabel();
@@ -234,8 +238,8 @@
         });
         syncAnnotations();
     });
-    draw.on('update', syncAnnotations);
-    draw.on('delete', syncAnnotations);
+    map.on('draw.update', syncAnnotations);
+    map.on('draw.delete', syncAnnotations);
 
     document.querySelectorAll('.color-swatch').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -251,50 +255,7 @@
         if (ANNOTATION_COLORS[i]) btn.style.background = ANNOTATION_COLORS[i];
     });
 
-    // ----- Mapbox Search Box: start & destination; store coords on retrieve for route -----
-    var startCoords = null;
-    var endCoords = null;
-
-    function initSearchBoxes() {
-        var startSearch = document.getElementById('start-search');
-        var endSearch = document.getElementById('end-search');
-        if (!startSearch || !endSearch) return;
-        var noSearchIconTheme = { cssText: 'svg { display: none !important; }' };
-        try {
-            startSearch.theme = noSearchIconTheme;
-            endSearch.theme = noSearchIconTheme;
-        } catch (e) {}
-        function getCoordsFromDetail(detail) {
-            if (!detail) return null;
-            var f = (detail.features && detail.features[0]) ? detail.features[0] : detail;
-            if (f && f.geometry && f.geometry.coordinates && f.geometry.coordinates.length >= 2)
-                return f.geometry.coordinates;
-            if (f && f.properties && f.properties.coordinates)
-                return f.properties.coordinates;
-            return null;
-        }
-        startSearch.addEventListener('retrieve', function (e) {
-            var coords = getCoordsFromDetail(e.detail);
-            if (coords) startCoords = coords;
-        });
-        endSearch.addEventListener('retrieve', function (e) {
-            var coords = getCoordsFromDetail(e.detail);
-            if (coords) endCoords = coords;
-        });
-        if (map.getCenter) {
-            var c = map.getCenter();
-            startSearch.setAttribute('proximity', c.lng + ',' + c.lat);
-            endSearch.setAttribute('proximity', c.lng + ',' + c.lat);
-        }
-    }
-
-    var searchScript = document.getElementById('search-js');
-    if (searchScript) {
-        searchScript.onload = initSearchBoxes;
-        if (searchScript.readyState === 'complete') initSearchBoxes();
-    } else {
-        document.addEventListener('DOMContentLoaded', initSearchBoxes);
-    }
+    // (Draw tool colors now use default Mapbox Draw theme)
 
     document.querySelectorAll('.profile-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -307,7 +268,104 @@
         return document.querySelector('.profile-btn.active').dataset.profile;
     }
 
-    // Geocoding helper – returns [lng, lat] or null if address not found (fallback when not using Search Box selection)
+    // ----- Address search suggestions for start & destination (Mapbox Geocoding) -----
+    async function searchAddresses(query) {
+        const trimmed = (query || '').trim();
+        if (!trimmed) return [];
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}&limit=6`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data.features) ? data.features : [];
+    }
+
+    function setupAddressSearch(inputId, resultsId) {
+        const input = document.getElementById(inputId);
+        const resultsEl = document.getElementById(resultsId);
+        if (!input || !resultsEl) return;
+        let debounce = null;
+
+        function showSuggestions(features) {
+            resultsEl.innerHTML = '';
+            resultsEl.classList.remove('active');
+
+            // If no results, still show a hint so the user sees feedback
+            if (!features || features.length === 0) {
+                const hint = document.createElement('div');
+                hint.className = 'result-item result-item--hint';
+                hint.textContent = 'No results found. Try a more specific address.';
+                resultsEl.appendChild(hint);
+                resultsEl.classList.add('active');
+                return;
+            }
+
+            features.forEach((f, i) => {
+                const item = document.createElement('div');
+                item.className = 'result-item' + (i === 0 ? ' selected' : '');
+                const name = f.place_name || f.text || '';
+                item.innerHTML = `<div class="result-place">${f.text || ''}</div><div class="result-address">${name}</div>`;
+                item.dataset.placeName = name;
+                item.onclick = () => {
+                    input.value = item.dataset.placeName || '';
+                    resultsEl.classList.remove('active');
+                    resultsEl.innerHTML = '';
+                };
+                resultsEl.appendChild(item);
+            });
+            resultsEl.classList.add('active');
+        }
+
+        input.addEventListener('input', () => {
+            clearTimeout(debounce);
+            const q = input.value.trim();
+            if (!q) {
+                resultsEl.classList.remove('active');
+                resultsEl.innerHTML = '';
+                return;
+            }
+            debounce = setTimeout(async () => {
+                try {
+                    const features = await searchAddresses(q);
+                    showSuggestions(features);
+                } catch (e) {
+                    console.error('Search error', e);
+                    showSuggestions([]);
+                }
+            }, 250);
+        });
+
+        input.addEventListener('keydown', (e) => {
+            const selected = resultsEl.querySelector('.result-item.selected');
+            if (e.key === 'ArrowDown' && selected && selected.nextElementSibling) {
+                e.preventDefault();
+                selected.classList.remove('selected');
+                selected.nextElementSibling.classList.add('selected');
+            } else if (e.key === 'ArrowUp' && selected && selected.previousElementSibling) {
+                e.preventDefault();
+                selected.classList.remove('selected');
+                selected.previousElementSibling.classList.add('selected');
+            } else if (e.key === 'Enter' && selected) {
+                e.preventDefault();
+                input.value = selected.dataset.placeName || '';
+                resultsEl.classList.remove('active');
+                resultsEl.innerHTML = '';
+            }
+        });
+    }
+
+    setupAddressSearch('start', 'start-results');
+    setupAddressSearch('end', 'end-results');
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.address-wrap')) {
+            const sr = document.getElementById('start-results');
+            const er = document.getElementById('end-results');
+            if (sr) sr.classList.remove('active');
+            if (er) er.classList.remove('active');
+        }
+    });
+
+    // Geocoding helper – returns [lng, lat] or null if address not found
     async function getCoords(address) {
         const trimmed = (address || '').trim();
         if (!trimmed) return null;
@@ -318,38 +376,32 @@
         return data.features[0].center;
     }
 
-    function getSearchBoxValue(el) {
-        if (!el) return '';
-        if (el.value !== undefined && el.value !== null) return String(el.value).trim();
-        try {
-            var input = el.shadowRoot && el.shadowRoot.querySelector('input');
-            return (input && input.value) ? input.value.trim() : '';
-        } catch (e) { return ''; }
-    }
-
-    // Route: use coordinates from Search Box retrieve, or geocode the search box value as fallback
+    // Route: geocode whatever the user typed (or selected) in each box and visualize the route
     document.getElementById('calc-route').onclick = async () => {
-        var start = startCoords;
-        var end = endCoords;
-        var startSearch = document.getElementById('start-search');
-        var endSearch = document.getElementById('end-search');
+        var startText = (document.getElementById('start').value || '').trim();
+        var endText = (document.getElementById('end').value || '').trim();
+
+        if (!startText || !endText) {
+            alert('Please type a starting address and a destination address.');
+            return;
+        }
+
+        var start = await getCoords(startText);
+        var end = await getCoords(endText);
 
         if (!start) {
-            var v = getSearchBoxValue(startSearch);
-            if (v) start = await getCoords(v);
+            alert(currentLang === 'en' ? translations.en.errStart : translations.pt.errStart);
+            return;
         }
         if (!end) {
-            var v = getSearchBoxValue(endSearch);
-            if (v) end = await getCoords(v);
-        }
-
-        if (!start || !end) {
-            alert('Please search and select both a starting address and a destination from the search suggestions (click a suggestion), or type a full address in each box.');
+            alert(currentLang === 'en' ? translations.en.errEnd : translations.pt.errEnd);
             return;
         }
 
         var profile = getSelectedProfile();
-        var url = 'https://api.mapbox.com/directions/v5/mapbox/' + profile + '/' + start[0] + ',' + start[1] + ';' + end[0] + ',' + end[1] + '?geometries=geojson&access_token=' + mapboxgl.accessToken;
+        var url = 'https://api.mapbox.com/directions/v5/mapbox/' + profile + '/' +
+            start[0] + ',' + start[1] + ';' + end[0] + ',' + end[1] +
+            '?geometries=geojson&access_token=' + mapboxgl.accessToken;
 
         try {
             var response = await fetch(url);
@@ -367,7 +419,7 @@
                     type: 'line',
                     source: 'route',
                     layout: { 'line-join': 'round', 'line-cap': 'round' },
-                    paint: { 'line-color': '#6A5ACD', 'line-width': 8 }
+                    paint: { 'line-color': '#0d6efd', 'line-width': 8 }
                 });
 
                 var bounds = new mapboxgl.LngLatBounds();
