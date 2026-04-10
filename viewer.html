@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Viewer</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .visualization-slot {
+            margin-top: 8px;
+            width: 100%;
+            min-height: 280px;
+            background: #d9d9d9;
+            border: 1px solid #c3c3c3;
+            border-radius: 8px;
+        }
+
+        .visualization-heading {
+            padding-top: 2rem;
+        }
+
+        .participant-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mini-squares {
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .mini-square {
+            width: 60px;
+            height: 60px;
+            background: #d9d9d9;
+            border: 1px solid #c3c3c3;
+            border-radius: 3px;
+            margin-top: 24px;
+        }
+
+        .mini-square.selected {
+            border: 2px solid #6A5ACD;
+        }
+
+        .mini-save-btn {
+            background: #6A5ACD;
+            color: #fff;
+            border: 1px solid #6A5ACD;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 8px;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav" aria-label="Page navigation">
+        <a href="viewer.html" class="active" id="nav-viewer-link">Viewer</a>
+        <a href="creator.html" id="nav-creator-link">Creator</a>
+    </nav>
+
+    <div class="top-bar">
+        <h1 id="header-text">Tell Your Navigation Stories on the Map</h1>
+        <button class="lang-btn" id="lang-btn" aria-label="Switch language">EN</button>
+    </div>
+
+    <main class="viewer-content">
+
+        <h2 class="visualization-heading">Route Annotations</h2>
+        <div class="visualization-slot" aria-label="Saved visualization area"></div>
+        <div class="participant-row">
+            <h4>Participant 1</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+            <button type="button" class="mini-save-btn">Save</button>
+        </div>
+        <div class="participant-row">
+            <h4>Participant 2</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+        <div class="participant-row">
+            <h4>Participant 3</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+
+        <h2 class="visualization-heading">Safety Visualizations</h2>
+        <div class="visualization-slot" aria-label="Saved visualization area"></div>
+        <div class="participant-row">
+            <h4>Participant 1</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+        <div class="participant-row">
+            <h4>Participant 2</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+        <div class="participant-row">
+            <h4>Participant 3</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+        
+        <h2 class="visualization-heading">Equity Visualizations</h2>
+        <div class="visualization-slot" aria-label="Saved visualization area"></div>
+        <div class="participant-row">
+            <h4>Participant 1</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+        <div class="participant-row">
+            <h4>Participant 2</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+        <div class="participant-row">
+            <h4>Participant 3</h4>
+            <div class="mini-squares" aria-label="Participant 1 placeholders">
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+                <span class="mini-square"></span>
+            </div>
+        </div>
+        
+    </main>
+
+    <script>
+        document.querySelectorAll('.mini-square').forEach(square => {
+            square.addEventListener('click', () => {
+                square.classList.toggle('selected');
+            });
+        });
+
+        const lang = localStorage.getItem('coDesignLang') === 'pt' ? 'pt' : 'en';
+        if (lang === 'pt') {
+            const creator = document.getElementById('nav-creator-link');
+            const viewer = document.getElementById('nav-viewer-link');
+            if (creator) creator.textContent = 'Criador';
+            if (viewer) viewer.textContent = 'Visualizador';
+        }
+    </script>
+
+</body>
+</html>
