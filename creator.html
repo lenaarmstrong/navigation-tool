@@ -105,6 +105,7 @@
                 <button type="button" id="undo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Undo</button>
                 <button type="button" id="redo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Redo</button>
                 <button type="button" id="save-shapes-png" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Save</button>
+                <button type="button" id="clear-annotations-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Clear</button>
             </div>
         </div>
         </div>
@@ -124,13 +125,13 @@
                 </div>
             </div>
             <button type="button" id="circle-mode-btn" class="circle-mode-btn">Place circle on map</button>
-            <button type="button" id="clear-circles-btn" class="circle-secondary-btn circle-clear-btn">Clear all circles</button>
             <!-- <p id="circle-hint" class="circle-hint">Turn on placement, then click the map to add a circle.</p> -->
             <div style="border-top: 1px solid #eee; padding-top: 12px;">
                 <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch;">
                     <button type="button" id="undo-regions-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Undo</button>
                     <button type="button" id="redo-regions-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Redo</button>
                     <button type="button" id="save-regions-png-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Save</button>
+                    <button type="button" id="clear-regions-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Clear</button>
                 </div>
             </div>
         </div>
@@ -139,7 +140,21 @@
     </div>
 
     <div class="map-container">
-        <div id="map"></div>
+        <div class="map-inner">
+            <div id="map"></div>
+        </div>
+        <div class="map-snapshot-section" id="map-snapshot-section">
+            <div id="map-snapshot-preview-wrap" class="map-snapshot-preview-wrap" style="display: none;">
+                <div class="map-snapshot-preview-square" id="map-snapshot-preview-square">
+                    <img id="map-snapshot-preview" class="map-snapshot-preview" alt="">
+                </div>
+                <div class="map-snapshot-actions">
+                    <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Save as PNG</button>
+                    <button type="button" id="map-snapshot-delete-btn" class="map-snapshot-action-btn map-snapshot-delete-btn">Delete</button>
+                </div>
+            </div>
+            <div id="creator-saved-annotations-gallery" class="creator-saved-annotations-gallery" aria-label="All saved map previews"></div>
+        </div>
     </div>
 </div>
 </div>
@@ -200,7 +215,6 @@
             circleColorLabel: 'Color',
             placeCircle: 'Place circle on map',
             cancelPlace: 'Cancel placement',
-            clearCircles: 'Clear all circles',
             useAnnotationColor: 'Use annotation color',
             addText: 'Add Text',
             mapTextPlaceholder: 'Text to place on map',
@@ -209,8 +223,12 @@
             navViewer: 'Viewer',
             undo: 'Undo',
             redo: 'Redo',
+            clearAnnotations: 'Clear',
             circleHint: 'Turn on placement, then click the map to add a circle.',
-            circleHintActive: 'Click the map to place a circle. Turn off when done.'
+            circleHintActive: 'Click the map to place a circle. Turn off when done.',
+            mapSnapshotSavePng: 'Save as PNG',
+            mapSnapshotDelete: 'Delete',
+            mapSnapshotPreviewAlt: 'Map snapshot preview'
         },
         pt: {
             header: 'Compartilhe suas histórias de navegação no mapa',
@@ -240,7 +258,6 @@
             circleColorLabel: 'Cor',
             placeCircle: 'Colocar círculo no mapa',
             cancelPlace: 'Cancelar colocação',
-            clearCircles: 'Limpar todos os círculos',
             useAnnotationColor: 'Usar cor da anotação',
             addText: 'Adicionar Texto',
             mapTextPlaceholder: 'Texto para colocar no mapa',
@@ -249,8 +266,12 @@
             navViewer: 'Visualizador',
             undo: 'Desfazer',
             redo: 'Refazer',
+            clearAnnotations: 'Limpar',
             circleHint: 'Ative a colocação e clique no mapa para adicionar um círculo.',
-            circleHintActive: 'Clique no mapa para colocar um círculo. Desative ao terminar.'
+            circleHintActive: 'Clique no mapa para colocar um círculo. Desative ao terminar.',
+            mapSnapshotSavePng: 'Salvar como PNG',
+            mapSnapshotDelete: 'Excluir',
+            mapSnapshotPreviewAlt: 'Pré-visualização da captura do mapa'
         }
     };
 
@@ -280,18 +301,23 @@
         document.getElementById('circle-tool-heading').textContent = t.circleToolHeading;
         document.getElementById('circle-radius-label').textContent = t.circleRadiusLabel;
         document.getElementById('circle-color-label').textContent = t.circleColorLabel;
-        document.getElementById('clear-circles-btn').textContent = t.clearCircles;
         document.getElementById('nav-creator-link').textContent = t.navCreator;
         document.getElementById('nav-viewer-link').textContent = t.navViewer;
         document.getElementById('undo-annotation-btn').textContent = t.undo;
         document.getElementById('redo-annotation-btn').textContent = t.redo;
         document.getElementById('undo-regions-btn').textContent = t.undo;
         document.getElementById('redo-regions-btn').textContent = t.redo;
+        document.getElementById('clear-annotations-btn').textContent = t.clearAnnotations;
+        document.getElementById('clear-regions-btn').textContent = t.clearAnnotations;
         document.getElementById('text-mode-btn').textContent = t.addText;
         const mapTextInput = document.getElementById('map-text-input');
         if (mapTextInput) mapTextInput.placeholder = t.mapTextPlaceholder;
         document.getElementById('save-shapes-png').textContent = t.saveShapesPng;
         document.getElementById('save-regions-png-btn').textContent = t.saveShapesPng;
+        document.getElementById('map-snapshot-save-png-btn').textContent = t.mapSnapshotSavePng;
+        document.getElementById('map-snapshot-delete-btn').textContent = t.mapSnapshotDelete;
+        const snapPreview = document.getElementById('map-snapshot-preview');
+        if (snapPreview) snapPreview.alt = t.mapSnapshotPreviewAlt;
         const modeBtn = document.getElementById('circle-mode-btn');
         if (modeBtn) modeBtn.textContent = circleModeActive ? t.cancelPlace : t.placeCircle;
         updateCircleHintText();
@@ -670,13 +696,6 @@
         setCircleMode(!circleModeActive);
     });
 
-    document.getElementById('clear-circles-btn').addEventListener('click', () => {
-        userCirclesData.features.length = 0;
-        const src = map.getSource('user-circles');
-        if (src) src.setData(userCirclesData);
-        pushAnnotationSnapshot();
-    });
-
     document.querySelectorAll('.circle-region-swatch').forEach((btn) => {
         btn.addEventListener('click', () => {
             const hex = btn.getAttribute('data-circle-preset');
@@ -776,7 +795,7 @@
         return document.querySelector('.profile-btn.active').dataset.profile;
     }
 
-    document.getElementById('save-shapes-png').addEventListener('click', async () => {
+    async function getMapAnnotationsScreenshotDataUrl() {
         const keepVisibleLayerIds = new Set([
             'annotations-fill',
             'annotations-line',
@@ -789,7 +808,7 @@
         ]);
         const hiddenLayerIds = [];
         const style = map.getStyle();
-        if (!style || !Array.isArray(style.layers)) return;
+        if (!style || !Array.isArray(style.layers)) return null;
 
         const startMarkerEl = routeStartMarker && routeStartMarker.getElement ? routeStartMarker.getElement() : null;
         const endMarkerEl = routeEndMarker && routeEndMarker.getElement ? routeEndMarker.getElement() : null;
@@ -813,11 +832,7 @@
 
             await new Promise(resolve => map.once('idle', resolve));
 
-            const pngUrl = map.getCanvas().toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = pngUrl;
-            link.download = 'map-shapes.png';
-            link.click();
+            return map.getCanvas().toDataURL('image/png');
         } finally {
             hiddenLayerIds.forEach(id => {
                 if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'visible');
@@ -825,10 +840,191 @@
             if (startMarkerEl) startMarkerEl.style.display = prevStartDisplay;
             if (endMarkerEl) endMarkerEl.style.display = prevEndDisplay;
         }
+    }
+
+    let mapSnapshotDataUrl = null;
+    let selectedPreviewGalleryId = null;
+
+    const CO_DESIGN_PREVIEW_GALLERY_KEY = 'coDesignMapPreviewGallery';
+
+    function loadPreviewGallery() {
+        try {
+            const raw = localStorage.getItem(CO_DESIGN_PREVIEW_GALLERY_KEY);
+            const arr = JSON.parse(raw || '[]');
+            return Array.isArray(arr) ? arr : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function savePreviewGallery(list) {
+        localStorage.setItem(CO_DESIGN_PREVIEW_GALLERY_KEY, JSON.stringify(list));
+    }
+
+    function appendPreviewToGallery(dataUrl, annotationsSnapshot) {
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+        const list = loadPreviewGallery();
+        list.push({
+            id,
+            dataUrl,
+            annotations: JSON.parse(JSON.stringify(annotationsSnapshot))
+        });
+        savePreviewGallery(list);
+        return id;
+    }
+
+    function removePreviewFromGalleryById(id) {
+        if (!id) return;
+        savePreviewGallery(loadPreviewGallery().filter((item) => item.id !== id));
+    }
+
+    function getSelectedGalleryEntry() {
+        if (!selectedPreviewGalleryId) return null;
+        return loadPreviewGallery().find((item) => item.id === selectedPreviewGalleryId) || null;
+    }
+
+    function getGalleryEntryForShownPreview() {
+        const img = document.getElementById('map-snapshot-preview');
+        if (img && img.src) {
+            const list = loadPreviewGallery();
+            const match = list.find((item) => item.dataUrl === img.src);
+            if (match) return match;
+        }
+        return getSelectedGalleryEntry();
+    }
+
+    function raiseAnnotationLayersToTop() {
+        ['annotations-fill', 'annotations-line', 'annotations-linestring', 'annotations-point', 'user-circles-fill', 'user-circles-line', 'map-text-layer'].forEach((id) => {
+            if (map.getLayer(id)) map.moveLayer(id);
+        });
+    }
+
+    function syncWrapFromSelected() {
+        const e = getSelectedGalleryEntry();
+        const wrap = document.getElementById('map-snapshot-preview-wrap');
+        const img = document.getElementById('map-snapshot-preview');
+        if (!e) {
+            mapSnapshotDataUrl = null;
+            if (img) img.removeAttribute('src');
+            if (wrap) wrap.style.display = 'none';
+            return;
+        }
+        mapSnapshotDataUrl = e.dataUrl;
+        if (img) img.src = e.dataUrl;
+        if (wrap) wrap.style.display = '';
+    }
+
+    function restoreSelectedGalleryAnnotations() {
+        const e = getGalleryEntryForShownPreview();
+        if (!e || !e.annotations) return;
+        if (e.id) selectedPreviewGalleryId = e.id;
+        applyAnnotationSnapshot(JSON.parse(JSON.stringify(e.annotations)));
+        pushAnnotationSnapshot();
+        raiseAnnotationLayersToTop();
+    }
+
+    function renderCreatorAnnotationGallery() {
+        const host = document.getElementById('creator-saved-annotations-gallery');
+        if (!host) return;
+        host.innerHTML = '';
+        const list = loadPreviewGallery();
+        for (let i = list.length - 1; i >= 0; i--) {
+            const item = list[i];
+            const tile = document.createElement('div');
+            tile.className = 'creator-saved-annotation-tile';
+            if (item.id === selectedPreviewGalleryId) tile.classList.add('selected');
+            const img = document.createElement('img');
+            img.src = item.dataUrl;
+            img.alt = '';
+            tile.appendChild(img);
+            tile.addEventListener('click', () => {
+                selectedPreviewGalleryId = item.id;
+                syncWrapFromSelected();
+                if (item.annotations) {
+                    applyAnnotationSnapshot(JSON.parse(JSON.stringify(item.annotations)));
+                    pushAnnotationSnapshot();
+                }
+                renderCreatorAnnotationGallery();
+            });
+            host.appendChild(tile);
+        }
+    }
+
+    function initCreatorPreviewGalleryFromStorage() {
+        const list = loadPreviewGallery();
+        if (!list.length) return;
+        if (!selectedPreviewGalleryId) selectedPreviewGalleryId = list[list.length - 1].id;
+        syncWrapFromSelected();
+        renderCreatorAnnotationGallery();
+    }
+
+    const EMPTY_ANNOTATION_SNAPSHOT = {
+        draw: { type: 'FeatureCollection', features: [] },
+        circles: { type: 'FeatureCollection', features: [] },
+        text: { type: 'FeatureCollection', features: [] },
+        nextTextId: 1
+    };
+
+    function clearAllMapAnnotations() {
+        applyAnnotationSnapshot(JSON.parse(JSON.stringify(EMPTY_ANNOTATION_SNAPSHOT)));
+        pushAnnotationSnapshot();
+    }
+
+    document.getElementById('clear-annotations-btn').addEventListener('click', clearAllMapAnnotations);
+    document.getElementById('clear-regions-btn').addEventListener('click', clearAllMapAnnotations);
+
+    async function runSaveMapPreview() {
+        const saveBtn = document.getElementById('save-shapes-png');
+        const saveRegionsBtn = document.getElementById('save-regions-png-btn');
+        saveBtn.disabled = true;
+        if (saveRegionsBtn) saveRegionsBtn.disabled = true;
+        try {
+            const pngUrl = await getMapAnnotationsScreenshotDataUrl();
+            if (!pngUrl) return;
+            const annotationsSnapshot = getAnnotationSnapshot();
+            selectedPreviewGalleryId = appendPreviewToGallery(pngUrl, annotationsSnapshot);
+            syncWrapFromSelected();
+            renderCreatorAnnotationGallery();
+            applyAnnotationSnapshot(JSON.parse(JSON.stringify(EMPTY_ANNOTATION_SNAPSHOT)));
+            pushAnnotationSnapshot();
+        } finally {
+            saveBtn.disabled = false;
+            if (saveRegionsBtn) saveRegionsBtn.disabled = false;
+        }
+    }
+
+    document.getElementById('save-shapes-png').addEventListener('click', () => {
+        runSaveMapPreview();
     });
 
+    document.getElementById('map-snapshot-save-png-btn').addEventListener('click', () => {
+        if (!mapSnapshotDataUrl) return;
+        const link = document.createElement('a');
+        link.href = mapSnapshotDataUrl;
+        link.download = 'map-annotations-snapshot.png';
+        link.click();
+    });
+
+    document.getElementById('map-snapshot-delete-btn').addEventListener('click', () => {
+        removePreviewFromGalleryById(selectedPreviewGalleryId);
+        const list = loadPreviewGallery();
+        selectedPreviewGalleryId = list.length ? list[list.length - 1].id : null;
+        syncWrapFromSelected();
+        renderCreatorAnnotationGallery();
+    });
+
+    document.getElementById('map-snapshot-preview-square').addEventListener('click', () => {
+        restoreSelectedGalleryAnnotations();
+    });
+
+    if (map.loaded()) {
+        initCreatorPreviewGalleryFromStorage();
+    } else {
+        map.once('load', initCreatorPreviewGalleryFromStorage);
+    }
+
     document.getElementById('save-regions-png-btn').addEventListener('click', () => {
-        document.getElementById('save-shapes-png').click();
+        runSaveMapPreview();
     });
 
     // ----- Address search suggestions for start & destination (Mapbox Geocoding) -----

@@ -56,8 +56,17 @@ body {
 
 .map-container {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.map-inner {
+    flex: 0 0 auto;
+    width: 100%;
     max-height: 80vh;
-    aspect-ratio: 1 / 1; /* keep the map in a square */
+    aspect-ratio: 1 / 1;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 0 12px rgba(0,0,0,0.25);
@@ -66,6 +75,104 @@ body {
 #map { 
     width: 100%; 
     height: 100%; 
+}
+
+.map-snapshot-section {
+    flex: 0 0 auto;
+    width: 50%;
+}
+
+.map-snapshot-preview-wrap {
+    margin-top: 0;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.map-snapshot-preview-square {
+    width: min(100%, 280px);
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #f5f5f5;
+    cursor: pointer;
+}
+
+.map-snapshot-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.map-snapshot-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.map-snapshot-action-btn {
+    flex: 1;
+    margin-bottom: 0;
+    padding: 8px;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: #0d6efd;
+    border: 2px solid #0d6efd;
+    border-radius: 8px;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.map-snapshot-action-btn:hover {
+    background: #0d6efd;
+    color: #ffffff;
+}
+
+.map-snapshot-delete-btn {
+    color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.map-snapshot-delete-btn:hover {
+    background: #0d6efd;
+    color: #ffffff;
+}
+
+.creator-saved-annotations-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.creator-saved-annotation-tile {
+    width: 72px;
+    height: 72px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+    background: #f5f5f5;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.creator-saved-annotation-tile.selected {
+    border-color: #6A5ACD;
+    box-shadow: 0 0 0 1px rgba(106, 90, 205, 0.35);
+}
+
+.creator-saved-annotation-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .panel { 
@@ -193,9 +300,11 @@ button { background: #0096FF; color: white; border: none; cursor: pointer; font-
 #undo-annotation-btn,
 #redo-annotation-btn,
 #save-shapes-png,
+#clear-annotations-btn,
 #undo-regions-btn,
 #redo-regions-btn,
-#save-regions-png-btn {
+#save-regions-png-btn,
+#clear-regions-btn {
     font-family: 'Lato', sans-serif;
     font-size: 0.85rem;
     font-weight: bold;
@@ -206,9 +315,11 @@ button { background: #0096FF; color: white; border: none; cursor: pointer; font-
 #undo-annotation-btn,
 #redo-annotation-btn,
 #save-shapes-png,
+#clear-annotations-btn,
 #undo-regions-btn,
 #redo-regions-btn,
-#save-regions-png-btn {
+#save-regions-png-btn,
+#clear-regions-btn {
     background: #ffffff;
     color: #0d6efd;
     border: 2px solid #0d6efd;
@@ -225,9 +336,11 @@ button { background: #0096FF; color: white; border: none; cursor: pointer; font-
 
 #calc-route:hover,
 #save-shapes-png:hover,
+#clear-annotations-btn:hover,
 #undo-annotation-btn:hover,
 #redo-annotation-btn:hover,
 #save-regions-png-btn:hover,
+#clear-regions-btn:hover,
 #undo-regions-btn:hover,
 #redo-regions-btn:hover {
     background: #0d6efd;

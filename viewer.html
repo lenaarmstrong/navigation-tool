@@ -4,6 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         .visualization-slot {
@@ -54,6 +59,119 @@
             margin-left: 8px;
             width: 100px;
         }
+
+        .saved-previews-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .saved-preview-tile {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #c3c3c3;
+            background: #f5f5f5;
+            flex-shrink: 0;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .saved-preview-tile.selected {
+            border-color: #6A5ACD;
+            box-shadow: 0 0 0 1px rgba(106, 90, 205, 0.35);
+        }
+
+        .saved-preview-tile img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+        }
+
+        .viewer-preview-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+            align-items: stretch;
+        }
+
+        .viewer-preview-toolbar[hidden] {
+            display: none !important;
+        }
+
+        .viewer-preview-toolbar-btn {
+            flex: 1 1 120px;
+            margin-bottom: 0;
+            padding: 8px;
+            box-sizing: border-box;
+            background: #ffffff;
+            color: #0d6efd;
+            border: 2px solid #0d6efd;
+            border-radius: 8px;
+            font-family: 'Lato', sans-serif;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .viewer-preview-toolbar-btn:hover {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+
+        .viewer-preview-toolbar-btn.viewer-preview-delete-btn {
+            color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .viewer-preview-toolbar-btn.viewer-preview-delete-btn:hover {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+
+        .viewer-map-container {
+            width: 100%;
+            height: 380px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #c3c3c3;
+            margin-bottom: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .viewer-map-container[hidden] {
+            display: none !important;
+        }
+
+        #viewer-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .saved-previews-empty {
+            color: #666;
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        .viewer-saved-preview-hint {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0 0 10px 0;
+            line-height: 1.35;
+            width: 100%;
+            flex-basis: 100%;
+        }
+
+        .saved-previews-gallery .viewer-saved-preview-hint {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -64,91 +182,20 @@
 
     <div class="top-bar">
         <h1 id="header-text">Tell Your Navigation Stories on the Map</h1>
-        <button class="lang-btn" id="lang-btn" aria-label="Switch language">EN</button>
+        <button type="button" class="lang-btn" id="lang-btn" aria-label="Switch language">EN</button>
     </div>
 
     <main class="viewer-content">
 
-        <h2 class="visualization-heading">Route Annotations</h2>
-        <div class="visualization-slot" aria-label="Saved visualization area"></div>
-        <div class="participant-row">
-            <h4>Participant 1</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-            <button type="button" class="mini-save-btn">Save</button>
+        <h2 class="visualization-heading" id="viewer-saved-previews-heading">Saved Map Previews</h2>
+        <div id="saved-previews-gallery" class="saved-previews-gallery" aria-label="Saved map previews from creator"></div>
+        <div id="viewer-preview-toolbar" class="viewer-preview-toolbar" hidden>
+            <button type="button" id="viewer-save-png-btn" class="viewer-preview-toolbar-btn">Save as PNG</button>
+            <button type="button" id="viewer-show-map-btn" class="viewer-preview-toolbar-btn">Show on map</button>
+            <button type="button" id="viewer-delete-preview-btn" class="viewer-preview-toolbar-btn viewer-preview-delete-btn">Delete</button>
         </div>
-        <div class="participant-row">
-            <h4>Participant 2</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-        </div>
-        <div class="participant-row">
-            <h4>Participant 3</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-        </div>
-
-        <h2 class="visualization-heading">Safety Visualizations</h2>
-        <div class="visualization-slot" aria-label="Saved visualization area"></div>
-        <div class="participant-row">
-            <h4>Participant 1</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-        </div>
-        <div class="participant-row">
-            <h4>Participant 2</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-        </div>
-        <div class="participant-row">
-            <h4>Participant 3</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-        </div>
-        
-        <h2 class="visualization-heading">Equity Visualizations</h2>
-        <div class="visualization-slot" aria-label="Saved visualization area"></div>
-        <div class="participant-row">
-            <h4>Participant 1</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-        </div>
-        <div class="participant-row">
-            <h4>Participant 2</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
-        </div>
-        <div class="participant-row">
-            <h4>Participant 3</h4>
-            <div class="mini-squares" aria-label="Participant 1 placeholders">
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-                <span class="mini-square"></span>
-            </div>
+        <div id="viewer-map-container" class="viewer-map-container" hidden>
+            <div id="viewer-map" role="application" aria-label="Map showing selected preview annotations"></div>
         </div>
         
     </main>
@@ -160,13 +207,414 @@
             });
         });
 
-        const lang = localStorage.getItem('coDesignLang') === 'pt' ? 'pt' : 'en';
-        if (lang === 'pt') {
-            const creator = document.getElementById('nav-creator-link');
-            const viewer = document.getElementById('nav-viewer-link');
-            if (creator) creator.textContent = 'Criador';
-            if (viewer) viewer.textContent = 'Visualizador';
+        let viewerLang = localStorage.getItem('coDesignLang') === 'pt' ? 'pt' : 'en';
+
+        const viewerTranslations = {
+            en: {
+                pageTitle: 'Viewer',
+                navAria: 'Page navigation',
+                navViewer: 'Viewer',
+                navCreator: 'Creator',
+                langBtnAria: 'Switch language',
+                header: 'Tell Your Navigation Stories on the Map',
+                savedPreviewsHeading: 'Saved Maps',
+                galleryAria: 'Saved map previews from creator',
+                mapAria: 'Map showing selected preview annotations',
+                savePng: 'Save as PNG',
+                showMap: 'Show on map',
+                delete: 'Delete',
+                emptyGallery: 'No saved previews yet. Use Save on the Creator page to add previews here.',
+                hint: 'Click saved annotations to show them on the map, save them, or delete them.',
+                tileAriaLabel: 'Map preview'
+            },
+            pt: {
+                pageTitle: 'Visualizador',
+                navAria: 'Navegação da página',
+                navViewer: 'Visualizador',
+                navCreator: 'Criador',
+                langBtnAria: 'Alternar idioma',
+                header: 'Compartilhe suas histórias de navegação no mapa',
+                savedPreviewsHeading: 'Mapas salvas',
+                galleryAria: 'Pré-visualizações do mapa salvas no Criador',
+                mapAria: 'Mapa com anotações das pré-visualizações selecionadas',
+                savePng: 'Salvar como PNG',
+                showMap: 'Mostrar no mapa',
+                delete: 'Excluir',
+                emptyGallery: 'Nenhuma captura salva ainda. Use Salvar no Criador para adicionar pré-visualizações aqui.',
+                hint: 'Clique nas anotações salvas para mostrar no mapa, salvar, ou exluir.',
+                tileAriaLabel: 'Pré-visualização do mapa'
+            }
+        };
+
+        function applyViewerLanguage() {
+            const t = viewerTranslations[viewerLang];
+            document.documentElement.lang = viewerLang === 'pt' ? 'pt' : 'en';
+            document.title = t.pageTitle;
+            const topNav = document.querySelector('.top-nav');
+            if (topNav) topNav.setAttribute('aria-label', t.navAria);
+            const navViewer = document.getElementById('nav-viewer-link');
+            const navCreator = document.getElementById('nav-creator-link');
+            if (navViewer) navViewer.textContent = t.navViewer;
+            if (navCreator) navCreator.textContent = t.navCreator;
+            const headerEl = document.getElementById('header-text');
+            if (headerEl) headerEl.textContent = t.header;
+            const savedHeading = document.getElementById('viewer-saved-previews-heading');
+            if (savedHeading) savedHeading.textContent = t.savedPreviewsHeading;
+            const gallery = document.getElementById('saved-previews-gallery');
+            if (gallery) gallery.setAttribute('aria-label', t.galleryAria);
+            const mapEl = document.getElementById('viewer-map');
+            if (mapEl) mapEl.setAttribute('aria-label', t.mapAria);
+            const langBtn = document.getElementById('lang-btn');
+            if (langBtn) {
+                langBtn.textContent = viewerLang === 'en' ? 'EN' : 'PT';
+                langBtn.setAttribute('aria-label', t.langBtnAria);
+            }
+            setViewerToolbarLabels();
         }
+
+        document.getElementById('lang-btn').addEventListener('click', () => {
+            viewerLang = viewerLang === 'en' ? 'pt' : 'en';
+            localStorage.setItem('coDesignLang', viewerLang);
+            applyViewerLanguage();
+            renderSavedPreviewsFromCreator();
+        });
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoibGVuYWFybXMiLCJhIjoiY205N3V0aGw2MGJnMDJsb2tiNDB1czFzaiJ9.bTzeSaHAUueU3tJHFNXyAA';
+
+        const CO_DESIGN_PREVIEW_GALLERY_KEY = 'coDesignMapPreviewGallery';
+        const ANNOTATION_COLORS = ['#43159e', '#335145', '#F7B32B', '#3066BE', '#8CBA80', '#88CCF1', '#a64b00'];
+
+        let viewerSelectedPreviewIds = new Set();
+        let viewerMap = null;
+        let viewerMapLayersReady = false;
+        let viewerMapContainerShown = false;
+        const viewerMapInitCallbacks = [];
+
+        function loadPreviewGallery() {
+            try {
+                const raw = localStorage.getItem(CO_DESIGN_PREVIEW_GALLERY_KEY);
+                const arr = JSON.parse(raw || '[]');
+                return Array.isArray(arr) ? arr : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function savePreviewGallery(list) {
+            localStorage.setItem(CO_DESIGN_PREVIEW_GALLERY_KEY, JSON.stringify(list));
+        }
+
+        function getViewerSelectedEntries() {
+            const items = loadPreviewGallery();
+            return items.filter((item) => item && item.id && viewerSelectedPreviewIds.has(item.id));
+        }
+
+        function updateViewerToolbarVisibility() {
+            const toolbar = document.getElementById('viewer-preview-toolbar');
+            if (!toolbar) return;
+            if (getViewerSelectedEntries().length > 0) {
+                toolbar.removeAttribute('hidden');
+            } else {
+                toolbar.setAttribute('hidden', '');
+            }
+        }
+
+        function emptyFeatureCollection() {
+            return { type: 'FeatureCollection', features: [] };
+        }
+
+        function extendBoundsFromGeoJSON(bounds, gj) {
+            if (!gj || !Array.isArray(gj.features)) return;
+            gj.features.forEach((f) => {
+                const g = f.geometry;
+                if (!g) return;
+                if (g.type === 'Point') bounds.extend(g.coordinates);
+                else if (g.type === 'LineString' || g.type === 'MultiPoint') {
+                    g.coordinates.forEach((c) => bounds.extend(c));
+                } else if (g.type === 'Polygon') {
+                    g.coordinates.forEach((ring) => ring.forEach((c) => bounds.extend(c)));
+                } else if (g.type === 'MultiPolygon') {
+                    g.coordinates.forEach((poly) => poly.forEach((ring) => ring.forEach((c) => bounds.extend(c))));
+                } else if (g.type === 'MultiLineString') {
+                    g.coordinates.forEach((line) => line.forEach((c) => bounds.extend(c)));
+                }
+            });
+        }
+
+        function extendBoundsFromSnapshot(bounds, snap) {
+            if (!snap) return;
+            if (snap.draw) extendBoundsFromGeoJSON(bounds, snap.draw);
+            if (snap.circles) extendBoundsFromGeoJSON(bounds, snap.circles);
+            if (snap.text) extendBoundsFromGeoJSON(bounds, snap.text);
+        }
+
+        function clearViewerMapSources() {
+            if (!viewerMap || !viewerMapLayersReady) return;
+            const ann = viewerMap.getSource('annotations');
+            const circ = viewerMap.getSource('user-circles');
+            const txt = viewerMap.getSource('map-text');
+            if (ann) ann.setData(emptyFeatureCollection());
+            if (circ) circ.setData(emptyFeatureCollection());
+            if (txt) txt.setData(emptyFeatureCollection());
+        }
+
+        function mergeAnnotationSnapshots(entries) {
+            const drawFeats = [];
+            const circleFeats = [];
+            const textFeats = [];
+            entries.forEach((entry) => {
+                const snap = entry && entry.annotations ? entry.annotations : {};
+                const d = snap.draw;
+                if (d && Array.isArray(d.features)) {
+                    d.features.forEach((f) => drawFeats.push(JSON.parse(JSON.stringify(f))));
+                }
+                const c = snap.circles;
+                if (c && Array.isArray(c.features)) {
+                    c.features.forEach((f) => circleFeats.push(JSON.parse(JSON.stringify(f))));
+                }
+                const t = snap.text;
+                if (t && Array.isArray(t.features)) {
+                    t.features.forEach((f) => textFeats.push(JSON.parse(JSON.stringify(f))));
+                }
+            });
+            return {
+                draw: { type: 'FeatureCollection', features: drawFeats },
+                circles: { type: 'FeatureCollection', features: circleFeats },
+                text: { type: 'FeatureCollection', features: textFeats }
+            };
+        }
+
+        function applyMergedSnapshotsToViewerMap(entries) {
+            if (!viewerMap || !viewerMapLayersReady) return;
+            const list = Array.isArray(entries) ? entries : [];
+            const merged = mergeAnnotationSnapshots(list);
+            viewerMap.getSource('annotations').setData(merged.draw);
+            viewerMap.getSource('user-circles').setData(merged.circles);
+            viewerMap.getSource('map-text').setData(merged.text);
+            const b = new mapboxgl.LngLatBounds();
+            extendBoundsFromSnapshot(b, merged);
+            if (!b.isEmpty()) {
+                viewerMap.fitBounds(b, { padding: 48, maxZoom: 16, duration: 0 });
+            } else {
+                viewerMap.jumpTo({ center: [-43.23, -22.93], zoom: 11 });
+            }
+        }
+
+        function ensureViewerMap(callback) {
+            if (viewerMap && viewerMapLayersReady) {
+                if (callback) callback();
+                return;
+            }
+            if (callback) viewerMapInitCallbacks.push(callback);
+            if (viewerMap) return;
+            viewerMap = new mapboxgl.Map({
+                container: 'viewer-map',
+                style: 'mapbox://styles/mapbox/light-v11',
+                center: [-43.23, -22.93],
+                zoom: 11
+            });
+            viewerMap.once('load', () => {
+                    viewerMap.addSource('annotations', { type: 'geojson', data: emptyFeatureCollection() });
+                    viewerMap.addLayer({
+                        id: 'annotations-fill',
+                        type: 'fill',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'Polygon'],
+                        paint: {
+                            'fill-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'fill-opacity': 0.6
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'annotations-line',
+                        type: 'line',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'Polygon'],
+                        paint: {
+                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'line-width': 2
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'annotations-linestring',
+                        type: 'line',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'LineString'],
+                        paint: {
+                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'line-width': 4
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'annotations-point',
+                        type: 'circle',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'Point'],
+                        paint: {
+                            'circle-radius': 8,
+                            'circle-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'circle-stroke-width': 2,
+                            'circle-stroke-color': '#fff'
+                        }
+                    });
+                    viewerMap.addSource('user-circles', { type: 'geojson', data: emptyFeatureCollection() });
+                    viewerMap.addLayer({
+                        id: 'user-circles-fill',
+                        type: 'fill',
+                        source: 'user-circles',
+                        paint: {
+                            'fill-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                            'fill-opacity': 0.2
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'user-circles-line',
+                        type: 'line',
+                        source: 'user-circles',
+                        paint: {
+                            'line-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                            'line-width': 1
+                        }
+                    });
+                    viewerMap.addSource('map-text', { type: 'geojson', data: emptyFeatureCollection() });
+                    viewerMap.addLayer({
+                        id: 'map-text-layer',
+                        type: 'symbol',
+                        source: 'map-text',
+                        layout: {
+                            'text-field': ['get', 'text'],
+                            'text-size': 15,
+                            'text-font': ['Lato Regular', 'Arial Unicode MS Regular'],
+                            'text-offset': [0, 0],
+                            'text-anchor': 'center',
+                            'text-allow-overlap': true
+                        },
+                        paint: {
+                            'text-color': '#111111',
+                            'text-halo-color': '#ffffff',
+                            'text-halo-width': 1.5
+                        }
+                    });
+                    ['annotations-fill', 'annotations-line', 'annotations-linestring', 'annotations-point', 'user-circles-fill', 'user-circles-line', 'map-text-layer'].forEach((id) => {
+                        if (viewerMap.getLayer(id)) viewerMap.moveLayer(id);
+                    });
+                    viewerMapLayersReady = true;
+                    const cbs = viewerMapInitCallbacks.slice();
+                    viewerMapInitCallbacks.length = 0;
+                    cbs.forEach((cb) => cb());
+                });
+        }
+
+        function setViewerToolbarLabels() {
+            const t = viewerTranslations[viewerLang];
+            const saveBtn = document.getElementById('viewer-save-png-btn');
+            const showBtn = document.getElementById('viewer-show-map-btn');
+            const delBtn = document.getElementById('viewer-delete-preview-btn');
+            if (saveBtn) saveBtn.textContent = t.savePng;
+            if (showBtn) showBtn.textContent = t.showMap;
+            if (delBtn) delBtn.textContent = t.delete;
+        }
+
+        function renderSavedPreviewsFromCreator() {
+            const items = loadPreviewGallery();
+            const container = document.getElementById('saved-previews-gallery');
+            if (!container) return;
+            container.innerHTML = '';
+            if (items.length === 0) {
+                viewerSelectedPreviewIds = new Set();
+                const p = document.createElement('p');
+                p.className = 'saved-previews-empty';
+                p.textContent = viewerTranslations[viewerLang].emptyGallery;
+                container.appendChild(p);
+                updateViewerToolbarVisibility();
+                const mapWrap = document.getElementById('viewer-map-container');
+                if (mapWrap) mapWrap.setAttribute('hidden', '');
+                viewerMapContainerShown = false;
+                clearViewerMapSources();
+                return;
+            }
+            const validIds = new Set(items.map((x) => x && x.id).filter(Boolean));
+            viewerSelectedPreviewIds = new Set([...viewerSelectedPreviewIds].filter((id) => validIds.has(id)));
+            const hint = document.createElement('p');
+            hint.className = 'viewer-saved-preview-hint';
+            hint.textContent = viewerTranslations[viewerLang].hint;
+            container.appendChild(hint);
+            items.forEach((entry) => {
+                if (!entry || !entry.dataUrl) return;
+                const tile = document.createElement('div');
+                tile.className = 'saved-preview-tile';
+                const isSelected = entry.id && viewerSelectedPreviewIds.has(entry.id);
+                if (isSelected) tile.classList.add('selected');
+                tile.setAttribute('role', 'checkbox');
+                tile.setAttribute('tabindex', '0');
+                tile.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+                tile.setAttribute('aria-label', viewerTranslations[viewerLang].tileAriaLabel);
+                const img = document.createElement('img');
+                img.src = entry.dataUrl;
+                img.alt = '';
+                tile.appendChild(img);
+                function toggleSelection() {
+                    if (viewerSelectedPreviewIds.has(entry.id)) viewerSelectedPreviewIds.delete(entry.id);
+                    else viewerSelectedPreviewIds.add(entry.id);
+                    renderSavedPreviewsFromCreator();
+                    updateViewerToolbarVisibility();
+                    if (viewerMapLayersReady && viewerMapContainerShown) {
+                        applyMergedSnapshotsToViewerMap(getViewerSelectedEntries());
+                    }
+                }
+                tile.addEventListener('click', toggleSelection);
+                tile.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleSelection();
+                    }
+                });
+                container.appendChild(tile);
+            });
+            updateViewerToolbarVisibility();
+        }
+
+        applyViewerLanguage();
+        renderSavedPreviewsFromCreator();
+
+        document.getElementById('viewer-save-png-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            entries.forEach((e, i) => {
+                if (!e.dataUrl) return;
+                setTimeout(() => {
+                    const a = document.createElement('a');
+                    a.href = e.dataUrl;
+                    const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
+                    a.download = 'map-annotations-snapshot-' + suffix + '.png';
+                    a.click();
+                }, i * 200);
+            });
+        });
+
+        document.getElementById('viewer-show-map-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            const mapWrap = document.getElementById('viewer-map-container');
+            if (mapWrap) {
+                mapWrap.removeAttribute('hidden');
+                viewerMapContainerShown = true;
+            }
+            ensureViewerMap(() => {
+                applyMergedSnapshotsToViewerMap(entries);
+                if (viewerMap) viewerMap.resize();
+            });
+        });
+
+        document.getElementById('viewer-delete-preview-btn').addEventListener('click', () => {
+            const toRemove = new Set(getViewerSelectedEntries().map((e) => e.id));
+            if (!toRemove.size) return;
+            savePreviewGallery(loadPreviewGallery().filter((item) => !toRemove.has(item.id)));
+            viewerSelectedPreviewIds = new Set();
+            clearViewerMapSources();
+            renderSavedPreviewsFromCreator();
+            if (viewerMap) viewerMap.resize();
+        });
     </script>
 
 </body>
