@@ -28,13 +28,10 @@
     </div>
     
 <div class="layout">
+    <div style="display:flex;flex-direction:column;gap:12px;flex:0 0 320px;width:320px;flex-shrink:0;padding-right:36px;">
     <div class="panel">
-        <div id="creator-tabs" style="display: flex; gap: 8px; margin-bottom: 10px;">
-            <button type="button" id="tab-route-annotations" class="circle-secondary-btn" style="margin-bottom: 0; background: #6A5ACD; color: #fff; border-color: #6A5ACD;">Routes</button>
-            <button type="button" id="tab-bubbles" class="circle-secondary-btn" style="margin-bottom: 0;">Regions</button>
-        </div>
         <div id="panel-route-annotations">
-        <h4 id="visualize-route-heading" style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 12px;">Visualize A Route</h4>
+        <h4 id="visualize-route-heading" style="margin-top: 4px; padding-top: 12px;">Visualize A Route</h4>
         <div class="profile-buttons">
             <button type="button" class="profile-btn active" data-profile="driving">Driving</button>
             <button type="button" class="profile-btn" data-profile="walking">Walking</button>
@@ -48,91 +45,95 @@
             <input type="text" id="end" placeholder="Destination Address" autocomplete="off">
             <div class="search-results" id="end-results"></div>
         </div>
-        <button id="calc-route">Visualize Route</button>
+        <button id="calc-route" style="margin-top: 10px;">Visualize Route</button>
+        </div>
+        </div>
 
+        <div class="panel">
         <div class="annotations-section">
             <h4 id="annotations-heading">Add Annotations</h4>
-            
-            <div class="annotation-row">
+
+            <div class="draw-tools-panel" aria-label="Drawing tools" style="display:flex;flex-direction:row;gap:8px;margin-bottom:12px;align-items:flex-start;justify-content:space-between;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-line-label">Line</span>
+                    <button type="button" class="draw-tool-btn active" data-draw-mode="draw_line_string" aria-label="Draw line">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18L10 12L14 14L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </button>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-region-label">Region</span>
+                    <button type="button" class="draw-tool-btn" data-draw-mode="draw_polygon" aria-label="Draw polygon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6L15 4L20 12L14 20L6 16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
+                    </button>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-circle-label">Circle</span>
+                    <button type="button" id="circle-mode-btn" class="draw-tool-btn" aria-label="Draw circle">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"></circle></svg>
+                    </button>
+                    <div id="circle-resize-controls" style="display:none;flex-direction:column;align-items:stretch;gap:4px;width:100%;margin-top:2px;">
+                        <label for="circle-resize-range" id="circle-resize-label" style="font-size:11px;color:#666;text-align:center;">Circle radius</label>
+                        <input type="range" id="circle-resize-range" min="50" max="3000" step="50" value="250" style="width:100%;">
+                        <span id="circle-resize-value" style="font-size:11px;color:#666;text-align:center;">250 m</span>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-point-label">Point</span>
+                    <button type="button" class="draw-tool-btn" data-draw-mode="draw_point" aria-label="Draw point">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"></circle></svg>
+                    </button>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-text-label">Text</span>
+                    <button type="button" id="text-mode-btn" class="draw-tool-btn" aria-label="Add text">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8.9 9.2H15.1M12 9.2V15.8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="annotation-row" style="margin-top: 10px;">
                 <button type="button" class="color-swatch selected" data-color-index="0" style="background: #43159e;" aria-label="Color 1"></button>
-                <!-- <input type="text" class="label-input" id="label-0" placeholder="e.g. Residents"> -->
+                <input type="text" class="label-input" id="label-0" placeholder="e.g. Residents">
             </div>
             <div class="annotation-row">
-                <button type="button" class="color-swatch" data-color-index="1" style="background: #F7B32B;" aria-label="Color 2"></button>
-                <!-- <input type="text" class="label-input" id="label-1" placeholder="e.g. Taxi drivers"> -->
+                <button type="button" class="color-swatch" data-color-index="1" style="background: #3066BE;" aria-label="Color 2"></button>
+                <input type="text" class="label-input" id="label-1" placeholder="e.g. Taxi drivers">
             </div>
             <div class="annotation-row">
                 <button type="button" class="color-swatch" data-color-index="2" style="background: #335145;" aria-label="Color 3"></button>
-                <!-- <input type="text" class="label-input" id="label-2" placeholder="e.g. Delivery workers"> -->
+                <input type="text" class="label-input" id="label-2" placeholder="e.g. Delivery workers">
             </div>
             <div class="annotation-row">
-                <button type="button" class="color-swatch" data-color-index="3" style="background: #8CBA80;" aria-label="Color 4"></button>
-                <!-- <input type="text" class="label-input" id="label-3" placeholder="e.g. Tourists"> -->
+                <button type="button" class="color-swatch" data-color-index="3" style="background: #a64b00;" aria-label="Color 4"></button>
+                <input type="text" class="label-input" id="label-3" placeholder="e.g. Tourists">
             </div>
             <div class="annotation-row">
-                <button type="button" class="color-swatch" data-color-index="4" style="background: #3066BE;" aria-label="Color 5"></button>
-                <!-- <input type="text" class="label-input" id="label-4" placeholder="e.g. Bus drivers"> -->
+                <button type="button" class="color-swatch" data-color-index="4" style="background: #F7B32B;" aria-label="Color 5"></button>
+                <input type="text" class="label-input" id="label-4" placeholder="e.g. Bus drivers">
             </div>
             <div class="annotation-row">
-                <button type="button" class="color-swatch" data-color-index="5" style="background: #88CCF1;" aria-label="Color 6"></button>
-                <!-- <input type="text" class="label-input" id="label-5" placeholder="e.g. Pedestrians"> -->
+                <button type="button" class="color-swatch" data-color-index="5" style="background: #ff4d6d ;" aria-label="Color 6"></button>
+                <input type="text" class="label-input" id="label-5" placeholder="e.g. Pedestrians">
             </div>
             <div class="annotation-row">
-                <button type="button" class="color-swatch" data-color-index="6" style="background: #a64b00;" aria-label="Color 7"></button>
-                <!-- <input type="text" class="label-input" id="label-6" placeholder="e.g. New category"> -->
+                <button type="button" class="color-swatch" data-color-index="6" style="background: #88CCF1;" aria-label="Color 7"></button>
+                <input type="text" class="label-input" id="label-6" placeholder="e.g. new category">
+            </div>
+            <div class="annotation-row style="margin-bottom: 10px;"">
+                <button type="button" class="color-swatch" data-color-index="7" style="background: #8CBA80;" aria-label="Color 8"></button>
+                <input type="text" class="label-input" id="label-7" placeholder="e.g. new category">
             </div>
 
-            <div class="draw-tools-panel" aria-label="Drawing tools">
-                <button type="button" class="draw-tool-btn active" data-draw-mode="draw_line_string" aria-label="Draw line">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18L10 12L14 14L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                </button>
-                <button type="button" class="draw-tool-btn" data-draw-mode="draw_polygon" aria-label="Draw polygon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6L15 4L20 12L14 20L6 16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
-                </button>
-                <button type="button" class="draw-tool-btn" data-draw-mode="draw_point" aria-label="Draw point">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"></circle></svg>
-                </button>
-            </div>
         </div>
         <!-- <p id="hint-text" style="font-size: 12px; color: #666;">Use the top-right toolbar to draw annotations.</p> -->
-        <div style="display: flex; gap: 8px; align-items: stretch; margin-bottom: 16px;">
-            <input type="text" id="map-text-input" placeholder="Text to place on map" style="flex: 1; margin-bottom: 0;">
-            <button type="button" id="text-mode-btn" class="circle-secondary-btn" style="width: auto; margin-bottom: 0; flex-shrink: 0;">Add Text</button>
-        </div>
-
         <div style="border-top: 1px solid #eee; padding-top: 12px;">
             <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch;">
                 <button type="button" id="undo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Undo</button>
                 <button type="button" id="redo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Redo</button>
                 <button type="button" id="save-shapes-png" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Save</button>
                 <button type="button" id="clear-annotations-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Clear</button>
-            </div>
-        </div>
-        </div>
-        <div id="panel-bubbles" style="display: none;">
-        <div class="circle-tool-section">
-            <h4 id="circle-tool-heading">Draw Bubbles of Safety</h4>
-            <label class="circle-label" for="circle-radius" id="circle-radius-label">Radius (meters)</label>
-            <div class="circle-radius-row">
-                <input type="range" id="circle-radius" min="50" max="3000" step="50" value="250">
-                <span id="circle-radius-value">250 m</span>
-            </div>
-            <label class="circle-label" id="circle-color-label">Color</label>
-            <div class="circle-color-row">
-                <div class="annotation-row" style="margin-right: 0; margin-bottom: 0;">
-                    <button type="button" class="color-swatch circle-region-swatch" data-circle-preset="#3066BE" style="background: #3066BE;" aria-label="Circle color #3066BE"></button>
-                    <button type="button" class="color-swatch circle-region-swatch" data-circle-preset="#88CCF1" style="background: #88CCF1;" aria-label="Circle color #88CCF1"></button>
-                </div>
-            </div>
-            <button type="button" id="circle-mode-btn" class="circle-mode-btn">Place circle on map</button>
-            <!-- <p id="circle-hint" class="circle-hint">Turn on placement, then click the map to add a circle.</p> -->
-            <div style="border-top: 1px solid #eee; padding-top: 12px;">
-                <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch;">
-                    <button type="button" id="undo-regions-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Undo</button>
-                    <button type="button" id="redo-regions-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Redo</button>
-                    <button type="button" id="save-regions-png-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Save</button>
-                    <button type="button" id="clear-regions-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Clear</button>
-                </div>
             </div>
         </div>
         </div>
@@ -143,17 +144,30 @@
         <div class="map-inner">
             <div id="map"></div>
         </div>
-        <div class="map-snapshot-section" id="map-snapshot-section">
-            <div id="map-snapshot-preview-wrap" class="map-snapshot-preview-wrap" style="display: none;">
-                <div class="map-snapshot-preview-square" id="map-snapshot-preview-square">
-                    <img id="map-snapshot-preview" class="map-snapshot-preview" alt="">
+        <div class="map-preview-legend-row">
+            <div class="map-snapshot-section" id="map-snapshot-section">
+                <div id="map-snapshot-preview-wrap" class="map-snapshot-preview-wrap" style="display: none;">
+                    <div class="map-snapshot-preview-square" id="map-snapshot-preview-square">
+                        <img id="map-snapshot-preview" class="map-snapshot-preview" alt="">
+                    </div>
+                    <div class="map-snapshot-actions">
+                        <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Save as PNG</button>
+                        <button type="button" id="map-snapshot-delete-btn" class="map-snapshot-action-btn map-snapshot-delete-btn">Delete</button>
+                    </div>
                 </div>
-                <div class="map-snapshot-actions">
-                    <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Save as PNG</button>
-                    <button type="button" id="map-snapshot-delete-btn" class="map-snapshot-action-btn map-snapshot-delete-btn">Delete</button>
-                </div>
+                <div id="creator-saved-annotations-gallery" class="creator-saved-annotations-gallery" aria-label="All saved map previews"></div>
             </div>
-            <div id="creator-saved-annotations-gallery" class="creator-saved-annotations-gallery" aria-label="All saved map previews"></div>
+            <div id="annotations-label-legend" aria-live="polite">
+                <div id="annotations-label-legend-title">Legend</div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-0-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-0-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-1-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-1-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-2-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-2-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-3-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-3-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-4-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-4-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-5-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-5-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-6-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-6-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-7-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-7-text"></span></div>
+            </div>
         </div>
     </div>
 </div>
@@ -161,30 +175,6 @@
 
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoibGVuYWFybXMiLCJhIjoiY205N3V0aGw2MGJnMDJsb2tiNDB1czFzaiJ9.bTzeSaHAUueU3tJHFNXyAA';
-
-    function setCreatorTab(tabName) {
-        var routePanel = document.getElementById('panel-route-annotations');
-        var bubblesPanel = document.getElementById('panel-bubbles');
-        var routeBtn = document.getElementById('tab-route-annotations');
-        var bubblesBtn = document.getElementById('tab-bubbles');
-        if (!routePanel || !bubblesPanel || !routeBtn || !bubblesBtn) return;
-        var routeActive = tabName !== 'bubbles';
-        routePanel.style.display = routeActive ? '' : 'none';
-        bubblesPanel.style.display = routeActive ? 'none' : '';
-        routeBtn.style.background = routeActive ? '#6A5ACD' : '#fff';
-        routeBtn.style.color = routeActive ? '#fff' : '#444';
-        routeBtn.style.borderColor = routeActive ? '#6A5ACD' : '#ccc';
-        bubblesBtn.style.background = routeActive ? '#fff' : '#6A5ACD';
-        bubblesBtn.style.color = routeActive ? '#444' : '#fff';
-        bubblesBtn.style.borderColor = routeActive ? '#ccc' : '#6A5ACD';
-    }
-
-    document.getElementById('tab-route-annotations').addEventListener('click', function () {
-        setCreatorTab('route');
-    });
-    document.getElementById('tab-bubbles').addEventListener('click', function () {
-        setCreatorTab('bubbles');
-    });
 
     const translations = {
         en: {
@@ -205,11 +195,13 @@
             annotationsHeading: 'Add Annotations',
             routeHint: 'Search, select a result in each box (click or Enter), then click Visualize Route.',
             labelPlaceholder0: 'e.g. Residents',
-            labelPlaceholder1: 'e.g. Taxi drivers',
-            labelPlaceholder2: 'e.g. Delivery workers',
-            labelPlaceholder3: 'e.g. Tourists',
-            labelPlaceholder4: 'e.g. Bus drivers',
-            labelPlaceholder5: 'e.g. Pedestrians',
+            labelPlaceholder1: 'e.g. Taxi or Uber driver',
+            labelPlaceholder2: 'e.g. Unfamiliar',
+            labelPlaceholder3: 'e.g. Safe',
+            labelPlaceholder4: 'e.g. Technology works',
+            labelPlaceholder5: 'e.g. Technology issue',
+            labelPlaceholder6: 'e.g. New category',
+            labelPlaceholder7: 'e.g. New category',
             circleToolHeading: 'Draw Bubbles of Safety',
             circleRadiusLabel: 'Radius (meters)',
             circleColorLabel: 'Color',
@@ -228,7 +220,14 @@
             circleHintActive: 'Click the map to place a circle. Turn off when done.',
             mapSnapshotSavePng: 'Save as PNG',
             mapSnapshotDelete: 'Delete',
-            mapSnapshotPreviewAlt: 'Map snapshot preview'
+            mapSnapshotPreviewAlt: 'Map snapshot preview',
+            drawLineLabel: 'Line:',
+            drawRegionLabel: 'Region:',
+            drawPointLabel: 'Point:',
+            drawCircleLabel: 'Circle:',
+            drawTextLabel: 'Text:',
+            circleResizeLabel: 'Circle radius',
+            legendTitle: 'Legend'
         },
         pt: {
             header: 'Compartilhe suas histórias de navegação no mapa',
@@ -247,12 +246,14 @@
             errNoRoute: 'Nenhuma rota encontrada entre esses endereços. Tente outro modo de viagem ou endereços.',
             annotationsHeading: 'Adicionar anotações',
             routeHint: 'Pesquise, selecione um resultado em cada caixa (clique ou Enter), depois clique em Visualizar Rota.',
-            labelPlaceholder0: 'ex: Residentes',
-            labelPlaceholder1: 'ex: Motoristas de táxi',
-            labelPlaceholder2: 'ex: Entregadores',
-            labelPlaceholder3: 'ex: Turistas',
-            labelPlaceholder4: 'ex: Motoristas de ônibus',
-            labelPlaceholder5: 'ex: Pedestres',
+            labelPlaceholder0: 'ex. Residentes',
+            labelPlaceholder1: 'ex. Táxi ou Uber',
+            labelPlaceholder2: 'ex. Desconhecido',
+            labelPlaceholder3: 'ex. Seguro',
+            labelPlaceholder4: 'ex. Tecnologia funciona',
+            labelPlaceholder5: 'ex. Problema na tecnologia',
+            labelPlaceholder6: 'ex. Nova categoria',
+            labelPlaceholder7: 'ex. Nova categoria',
             circleToolHeading: 'Círculos no mapa',
             circleRadiusLabel: 'Raio (metros)',
             circleColorLabel: 'Cor',
@@ -271,7 +272,14 @@
             circleHintActive: 'Clique no mapa para colocar um círculo. Desative ao terminar.',
             mapSnapshotSavePng: 'Salvar como PNG',
             mapSnapshotDelete: 'Excluir',
-            mapSnapshotPreviewAlt: 'Pré-visualização da captura do mapa'
+            mapSnapshotPreviewAlt: 'Pré-visualização da captura do mapa',
+            drawLineLabel: 'Linha:',
+            drawRegionLabel: 'Região:',
+            drawPointLabel: 'Ponto:',
+            drawCircleLabel: 'Círculo:',
+            drawTextLabel: 'Texto:',
+            circleResizeLabel: 'Raio do círculo',
+            legendTitle: 'Legenda'
         }
     };
 
@@ -287,45 +295,48 @@
         document.querySelector('.profile-btn[data-profile="driving"]').textContent = t.driving;
         document.querySelector('.profile-btn[data-profile="walking"]').textContent = t.walking;
         document.querySelector('.profile-btn[data-profile="cycling"]').textContent = t.cycling;
-        document.getElementById('tab-route-annotations').textContent = t.routesTab;
-        document.getElementById('tab-bubbles').textContent = t.regionsTab;
         document.getElementById('visualize-route-heading').textContent = t.visualizeRouteHeading;
         document.getElementById('calc-route').textContent = t.visualizeRoute;
         const hintText = document.getElementById('hint-text');
         if (hintText) hintText.textContent = t.hint;
         document.getElementById('annotations-heading').textContent = t.annotationsHeading;
-        [0, 1, 2, 3, 4, 5].forEach(i => {
+        [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
             const input = document.getElementById('label-' + i);
             if (input) input.placeholder = t['labelPlaceholder' + i];
         });
-        document.getElementById('circle-tool-heading').textContent = t.circleToolHeading;
-        document.getElementById('circle-radius-label').textContent = t.circleRadiusLabel;
-        document.getElementById('circle-color-label').textContent = t.circleColorLabel;
         document.getElementById('nav-creator-link').textContent = t.navCreator;
         document.getElementById('nav-viewer-link').textContent = t.navViewer;
         document.getElementById('undo-annotation-btn').textContent = t.undo;
         document.getElementById('redo-annotation-btn').textContent = t.redo;
-        document.getElementById('undo-regions-btn').textContent = t.undo;
-        document.getElementById('redo-regions-btn').textContent = t.redo;
         document.getElementById('clear-annotations-btn').textContent = t.clearAnnotations;
-        document.getElementById('clear-regions-btn').textContent = t.clearAnnotations;
-        document.getElementById('text-mode-btn').textContent = t.addText;
-        const mapTextInput = document.getElementById('map-text-input');
-        if (mapTextInput) mapTextInput.placeholder = t.mapTextPlaceholder;
         document.getElementById('save-shapes-png').textContent = t.saveShapesPng;
-        document.getElementById('save-regions-png-btn').textContent = t.saveShapesPng;
         document.getElementById('map-snapshot-save-png-btn').textContent = t.mapSnapshotSavePng;
         document.getElementById('map-snapshot-delete-btn').textContent = t.mapSnapshotDelete;
+        const drawLineLabel = document.getElementById('draw-tool-line-label');
+        const drawRegionLabel = document.getElementById('draw-tool-region-label');
+        const drawPointLabel = document.getElementById('draw-tool-point-label');
+        const drawCircleLabel = document.getElementById('draw-tool-circle-label');
+        const drawTextLabel = document.getElementById('draw-tool-text-label');
+        if (drawLineLabel) drawLineLabel.textContent = t.drawLineLabel;
+        if (drawRegionLabel) drawRegionLabel.textContent = t.drawRegionLabel;
+        if (drawPointLabel) drawPointLabel.textContent = t.drawPointLabel;
+        if (drawCircleLabel) drawCircleLabel.textContent = t.drawCircleLabel;
+        if (drawTextLabel) drawTextLabel.textContent = t.drawTextLabel;
+        const circleResizeLabel = document.getElementById('circle-resize-label');
+        if (circleResizeLabel) circleResizeLabel.textContent = t.circleResizeLabel;
+        const legendTitle = document.getElementById('annotations-label-legend-title');
+        if (legendTitle) legendTitle.textContent = t.legendTitle;
         const snapPreview = document.getElementById('map-snapshot-preview');
         if (snapPreview) snapPreview.alt = t.mapSnapshotPreviewAlt;
-        const modeBtn = document.getElementById('circle-mode-btn');
-        if (modeBtn) modeBtn.textContent = circleModeActive ? t.cancelPlace : t.placeCircle;
         updateCircleHintText();
     }
 
     let circleModeActive = false;
+    let currentCircleRadiusMeters = 250;
     let circleSwatchColor = '#3066BE';
     const userCirclesData = { type: 'FeatureCollection', features: [] };
+    let nextCircleId = 1;
+    let selectedCircleId = null;
 
     function updateCircleHintText() {
         const hint = document.getElementById('circle-hint');
@@ -348,10 +359,11 @@
         container: 'map',
         style: 'mapbox://styles/mapbox/light-v11',
         center: [-43.23, -22.93], // Rio de Janeiro, Brazil
-        zoom: 11
+        zoom: 11,
+        preserveDrawingBuffer: true
     });
 
-    const ANNOTATION_COLORS = ['#43159e', '#335145', '#F7B32B', '#3066BE', '#8CBA80', '#88CCF1', '#a64b00'];
+    const ANNOTATION_COLORS = ['#43159e', '#F7B32B', '#ff4d6d', '#3066BE', '#335145', '#a64b00', '#88CCF1', '#8CBA80'];
     let selectedColorIndex = 0;
 
     const draw = new MapboxDraw({
@@ -364,6 +376,7 @@
     let routeStartMarker = null;
     let routeEndMarker = null;
     let textModeActive = false;
+    let activeTextDraft = null;
     const mapTextData = { type: 'FeatureCollection', features: [] };
     let nextMapTextId = 1;
     let draggingTextId = null;
@@ -418,17 +431,45 @@
                 'line-width': 4
             }
         });
-        map.addLayer({
-            id: 'annotations-point',
-            type: 'circle',
-            source: 'annotations',
-            filter: ['==', ['geometry-type'], 'Point'],
-            paint: {
-                'circle-radius': 8,
-                'circle-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
-                'circle-stroke-width': 2,
-                'circle-stroke-color': '#fff'
+        const addAnnotationsPointLayer = (useFallback) => {
+            if (!map.getSource('annotations') || map.getLayer('annotations-point')) return;
+            const layerDef = {
+                id: 'annotations-point',
+                type: 'symbol',
+                source: 'annotations',
+                filter: ['==', ['geometry-type'], 'Point']
+            };
+            if (useFallback) {
+                layerDef.layout = {
+                    'text-field': '📍',
+                    'text-size': 26,
+                    'text-allow-overlap': true
+                };
+                layerDef.paint = {
+                    'text-color': '#3d3d3d',
+                    'text-halo-color': '#ffffff',
+                    'text-halo-width': 0.5
+                };
+            } else {
+                layerDef.layout = {
+                    'icon-image': 'route-end-pin-icon',
+                    'icon-size': 1,
+                    'icon-anchor': 'bottom',
+                    'icon-allow-overlap': true
+                };
             }
+            map.addLayer(layerDef);
+        };
+        const routeEndPinSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="#3d3d3d" stroke="#1a1a1a" stroke-width="0.6" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
+        map.loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(routeEndPinSvg), (err, image) => {
+            if (err || !image) {
+                addAnnotationsPointLayer(true);
+                return;
+            }
+            if (!map.hasImage('route-end-pin-icon')) {
+                map.addImage('route-end-pin-icon', image);
+            }
+            addAnnotationsPointLayer(false);
         });
         map.addSource('user-circles', {
             type: 'geojson',
@@ -440,7 +481,7 @@
             source: 'user-circles',
             paint: {
                 'fill-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
-                'fill-opacity': 0.2
+                'fill-opacity': ['case', ['==', ['get', 'selected'], true], 0.28, 0.2]
             }
         });
         map.addLayer({
@@ -449,7 +490,7 @@
             source: 'user-circles',
             paint: {
                 'line-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
-                'line-width': 1
+                'line-width': ['case', ['==', ['get', 'selected'], true], 3, 1]
             }
         });
         map.addSource('map-text', {
@@ -462,10 +503,11 @@
             source: 'map-text',
             layout: {
                 'text-field': ['get', 'text'],
-                'text-size': 15,
+                'text-size': ['coalesce', ['to-number', ['get', 'textSize']], 15],
                 'text-font': ['Lato Regular', 'Arial Unicode MS Regular'],
                 'text-offset': [0, 0],
                 'text-anchor': 'center',
+                'text-max-width': 7,
                 'text-allow-overlap': true
             },
             paint: {
@@ -493,14 +535,111 @@
 
     function setActiveDrawButton(mode) {
         document.querySelectorAll('.draw-tool-btn').forEach(btn => {
+            if (!btn.dataset.drawMode) return;
             btn.classList.toggle('active', btn.dataset.drawMode === mode);
         });
+    }
+
+    function finalizeActiveTextDraft(saveToMap) {
+        if (!activeTextDraft) return;
+        const marker = activeTextDraft.marker;
+        const textarea = activeTextDraft.textarea;
+        const textValue = ((textarea && textarea.value) || '').trim();
+        const textSize = Math.max(10, Math.min(40, Number(activeTextDraft.fontSize) || 15));
+        if (saveToMap && marker && textValue) {
+            const lngLat = marker.getLngLat();
+            mapTextData.features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [lngLat.lng, lngLat.lat] },
+                properties: {
+                    text: textValue,
+                    textId: Number.isFinite(activeTextDraft.editingId) ? activeTextDraft.editingId : nextMapTextId++,
+                    textSize
+                }
+            });
+            refreshMapTextSource();
+            pushAnnotationSnapshot();
+        }
+        if (activeTextDraft.resizeObserver) activeTextDraft.resizeObserver.disconnect();
+        if (marker) marker.remove();
+        activeTextDraft = null;
+    }
+
+    function createTextDraftAt(lngLat, opts) {
+        finalizeActiveTextDraft(false);
+        const options = opts || {};
+        const wrapper = document.createElement('div');
+        wrapper.style.width = '180px';
+        wrapper.style.minWidth = '120px';
+        wrapper.style.maxWidth = '360px';
+        wrapper.style.background = 'rgba(255,255,255,0.98)';
+        wrapper.style.border = '1px solid #6A5ACD';
+        wrapper.style.borderRadius = '6px';
+        wrapper.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
+        wrapper.style.padding = '4px';
+        wrapper.style.pointerEvents = 'auto';
+
+        const textarea = document.createElement('textarea');
+        textarea.rows = 2;
+        textarea.placeholder = translations[currentLang].mapTextPlaceholder;
+        textarea.value = options.text || '';
+        textarea.style.width = '100%';
+        textarea.style.minHeight = '48px';
+        textarea.style.maxHeight = '220px';
+        textarea.style.resize = 'both';
+        textarea.style.display = 'block';
+        textarea.style.border = '1px solid #ddd';
+        textarea.style.borderRadius = '4px';
+        textarea.style.padding = '6px 8px';
+        textarea.style.boxSizing = 'border-box';
+        textarea.style.fontSize = (options.textSize || 15) + 'px';
+        textarea.style.lineHeight = '1.3';
+        textarea.style.background = '#ffffff';
+        textarea.style.outline = 'none';
+        wrapper.appendChild(textarea);
+
+        const marker = new mapboxgl.Marker({ element: wrapper, anchor: 'top-left', draggable: true })
+            .setLngLat(lngLat)
+            .addTo(map);
+
+        const ro = new ResizeObserver((entries) => {
+            const boxH = entries[0] && entries[0].contentRect ? entries[0].contentRect.height : 48;
+            const fs = Math.max(10, Math.min(40, Math.round((boxH / 48) * 15)));
+            textarea.style.fontSize = fs + 'px';
+            if (activeTextDraft) activeTextDraft.fontSize = fs;
+        });
+        ro.observe(textarea);
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                finalizeActiveTextDraft(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finalizeActiveTextDraft(false);
+                setTextMode(false);
+            }
+        });
+
+        activeTextDraft = {
+            marker,
+            textarea,
+            fontSize: Number(options.textSize) || 15,
+            editingId: Number.isFinite(options.editingId) ? options.editingId : null,
+            resizeObserver: ro
+        };
+        setTimeout(() => textarea.focus(), 0);
     }
 
     function setTextMode(active) {
         textModeActive = active;
         const btn = document.getElementById('text-mode-btn');
-        if (btn) btn.textContent = translations[currentLang].addText;
+        if (btn) {
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        }
+        if (active) setActiveDrawButton(null);
+        if (!active) finalizeActiveTextDraft(true);
         map.getCanvas().style.cursor = active ? 'text' : '';
     }
 
@@ -515,6 +654,85 @@
         sourceFeatures.forEach(feature => targetCollection.features.push(feature));
     }
 
+    function getCircleCenterFromFeature(feature) {
+        if (!feature || !feature.properties) return null;
+        const lng = Number(feature.properties.centerLng);
+        const lat = Number(feature.properties.centerLat);
+        if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat];
+        try {
+            if (typeof turf !== 'undefined' && feature.geometry) {
+                const centerFeature = turf.centerOfMass(feature);
+                const coords = centerFeature && centerFeature.geometry && centerFeature.geometry.coordinates;
+                if (Array.isArray(coords) && coords.length >= 2) return [coords[0], coords[1]];
+            }
+        } catch (e) {
+            // ignore and fallback below
+        }
+        return null;
+    }
+
+    function ensureCircleFeatureMetadata(feature) {
+        if (!feature) return;
+        if (!feature.properties) feature.properties = {};
+        if (!Number.isFinite(Number(feature.properties.circleId))) {
+            feature.properties.circleId = nextCircleId++;
+        } else {
+            nextCircleId = Math.max(nextCircleId, Number(feature.properties.circleId) + 1);
+        }
+        if (!Number.isFinite(Number(feature.properties.radiusM))) {
+            feature.properties.radiusM = currentCircleRadiusMeters;
+        }
+        const center = getCircleCenterFromFeature(feature);
+        if (center) {
+            feature.properties.centerLng = center[0];
+            feature.properties.centerLat = center[1];
+        }
+    }
+
+    function refreshUserCirclesSource() {
+        const source = map.getSource('user-circles');
+        if (source) source.setData(userCirclesData);
+    }
+
+    function updateCircleResizeUI() {
+        const controls = document.getElementById('circle-resize-controls');
+        const range = document.getElementById('circle-resize-range');
+        const value = document.getElementById('circle-resize-value');
+        const activeCircle = userCirclesData.features.find((f) => Number(f.properties && f.properties.circleId) === selectedCircleId);
+        if (!controls || !range || !value) return;
+        const radius = activeCircle
+            ? Math.max(50, Math.min(3000, Number(activeCircle.properties && activeCircle.properties.radiusM) || currentCircleRadiusMeters))
+            : currentCircleRadiusMeters;
+        range.value = String(radius);
+        value.textContent = radius + ' m';
+        controls.style.display = (circleModeActive || !!activeCircle) ? 'flex' : 'none';
+    }
+
+    function setSelectedCircle(circleId) {
+        selectedCircleId = Number.isFinite(Number(circleId)) ? Number(circleId) : null;
+        userCirclesData.features.forEach((feature) => {
+            if (!feature.properties) feature.properties = {};
+            feature.properties.selected = selectedCircleId !== null && Number(feature.properties.circleId) === selectedCircleId;
+        });
+        refreshUserCirclesSource();
+        updateCircleResizeUI();
+    }
+
+    function resizeSelectedCircle(radiusM) {
+        if (!Number.isFinite(radiusM) || radiusM <= 0 || typeof turf === 'undefined') return;
+        const feature = userCirclesData.features.find((f) => Number(f.properties && f.properties.circleId) === selectedCircleId);
+        if (!feature) return;
+        const center = getCircleCenterFromFeature(feature);
+        if (!center) return;
+        const rebuilt = turf.circle(center, radiusM, { steps: 64, units: 'meters' });
+        feature.geometry = rebuilt.geometry;
+        feature.properties.radiusM = radiusM;
+        feature.properties.centerLng = center[0];
+        feature.properties.centerLat = center[1];
+        refreshUserCirclesSource();
+        updateCircleResizeUI();
+    }
+
     function getAnnotationSnapshot() {
         return JSON.parse(JSON.stringify({
             draw: draw.getAll(),
@@ -527,12 +745,8 @@
     function updateAnnotationHistoryButtons() {
         const undoBtn = document.getElementById('undo-annotation-btn');
         const redoBtn = document.getElementById('redo-annotation-btn');
-        const undoRegionsBtn = document.getElementById('undo-regions-btn');
-        const redoRegionsBtn = document.getElementById('redo-regions-btn');
         if (undoBtn) undoBtn.disabled = annotationHistoryPast.length <= 1;
         if (redoBtn) redoBtn.disabled = annotationHistoryFuture.length === 0;
-        if (undoRegionsBtn) undoRegionsBtn.disabled = annotationHistoryPast.length <= 1;
-        if (redoRegionsBtn) redoRegionsBtn.disabled = annotationHistoryFuture.length === 0;
     }
 
     function pushAnnotationSnapshot() {
@@ -550,6 +764,11 @@
             draw.add(snapshot.draw);
         }
         setFeatureCollectionFeatures(userCirclesData, snapshot.circles);
+        userCirclesData.features.forEach((feature) => {
+            ensureCircleFeatureMetadata(feature);
+            if (feature.properties) feature.properties.selected = false;
+        });
+        selectedCircleId = null;
         const circlesSource = map.getSource('user-circles');
         if (circlesSource) circlesSource.setData(userCirclesData);
         setFeatureCollectionFeatures(mapTextData, snapshot.text);
@@ -645,6 +864,9 @@
         btn.addEventListener('click', () => {
             const mode = btn.dataset.drawMode;
             if (!mode) return;
+            if (textModeActive) setTextMode(false);
+            if (circleModeActive) setCircleMode(false);
+            setSelectedCircle(null);
             draw.changeMode(mode);
             setActiveDrawButton(mode);
         });
@@ -665,75 +887,122 @@
         if (ANNOTATION_COLORS[i]) btn.style.background = ANNOTATION_COLORS[i];
     });
 
-    // ----- Circle tool (geographic circles via Turf; radius in meters, custom color) -----
-    const circleRadiusInput = document.getElementById('circle-radius');
-    const circleRadiusValue = document.getElementById('circle-radius-value');
-    function refreshCircleRadiusLabel() {
-        if (circleRadiusValue && circleRadiusInput) {
-            circleRadiusValue.textContent = circleRadiusInput.value + ' m';
+    function updateAnnotationsLabelLegend() {
+        for (let i = 0; i <= 7; i++) {
+            const input = document.getElementById('label-' + i);
+            const sw = document.getElementById('label-legend-' + i + '-swatch');
+            const tx = document.getElementById('label-legend-' + i + '-text');
+            if (!input || !sw || !tx) continue;
+            sw.style.background = ANNOTATION_COLORS[i] || '#95a5a6';
+            const v = (input.value || '').trim();
+            tx.textContent = v || input.placeholder || '';
         }
     }
-    circleRadiusInput.addEventListener('input', refreshCircleRadiusLabel);
-    refreshCircleRadiusLabel();
+    for (let i = 0; i <= 7; i++) {
+        const labelInput = document.getElementById('label-' + i);
+        if (labelInput) {
+            labelInput.addEventListener('input', updateAnnotationsLabelLegend);
+            labelInput.addEventListener('change', updateAnnotationsLabelLegend);
+        }
+    }
+    updateAnnotationsLabelLegend();
+
+    // ----- Circle tool (geographic circles via Turf) -----
 
     function setCircleMode(active) {
         circleModeActive = active;
-        const t = translations[currentLang];
         const btn = document.getElementById('circle-mode-btn');
         if (active) {
             if (map.loaded()) draw.changeMode('simple_select');
-            if (btn) btn.textContent = t.cancelPlace;
+            if (btn) {
+                btn.classList.add('active');
+                btn.setAttribute('aria-pressed', 'true');
+            }
+            setSelectedCircle(null);
             map.getCanvas().style.cursor = 'crosshair';
         } else {
-            if (btn) btn.textContent = t.placeCircle;
+            if (btn) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-pressed', 'false');
+            }
             map.getCanvas().style.cursor = '';
         }
         updateCircleHintText();
+        updateCircleResizeUI();
     }
 
     document.getElementById('circle-mode-btn').addEventListener('click', () => {
         if (!circleModeActive && textModeActive) setTextMode(false);
+        if (!circleModeActive) setActiveDrawButton(null);
         setCircleMode(!circleModeActive);
     });
-
-    document.querySelectorAll('.circle-region-swatch').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const hex = btn.getAttribute('data-circle-preset');
-            if (!hex) return;
-            circleSwatchColor = hex;
-            document.querySelectorAll('.circle-region-swatch').forEach((b) => b.classList.remove('selected'));
-            btn.classList.add('selected');
-        });
-    });
-    const firstRegionSwatch = document.querySelector('.circle-region-swatch');
-    if (firstRegionSwatch) firstRegionSwatch.classList.add('selected');
 
     map.on('click', (e) => {
         if (!circleModeActive) return;
         if (typeof turf === 'undefined') return;
         if (!map.getSource('user-circles')) return;
-        const radiusM = parseInt(document.getElementById('circle-radius').value, 10);
-        const color = circleSwatchColor;
+        const radiusM = currentCircleRadiusMeters;
+        const circleId = nextCircleId++;
+        const color = ANNOTATION_COLORS[selectedColorIndex] || circleSwatchColor;
         const circle = turf.circle([e.lngLat.lng, e.lngLat.lat], radiusM, { steps: 64, units: 'meters' });
         if (!circle.properties) circle.properties = {};
+        circle.properties.circleId = circleId;
+        circle.properties.radiusM = radiusM;
+        circle.properties.centerLng = e.lngLat.lng;
+        circle.properties.centerLat = e.lngLat.lat;
         circle.properties.color = color;
+        circle.properties.selected = false;
         userCirclesData.features.push(circle);
-        map.getSource('user-circles').setData(userCirclesData);
+        setSelectedCircle(circleId);
         pushAnnotationSnapshot();
+    });
+
+    map.on('mouseenter', 'user-circles-fill', () => {
+        if (!circleModeActive) map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'user-circles-fill', () => {
+        if (!circleModeActive && !textModeActive) map.getCanvas().style.cursor = '';
+    });
+    map.on('click', 'user-circles-fill', (e) => {
+        if (circleModeActive) return;
+        const feature = e.features && e.features[0];
+        if (!feature) return;
+        const circleId = Number(feature.properties && feature.properties.circleId);
+        if (!Number.isFinite(circleId)) return;
+        e.preventDefault();
+        if (e.originalEvent) e.originalEvent.stopPropagation();
+        setSelectedCircle(circleId);
+    });
+    map.on('click', () => {
+        if (circleModeActive || textModeActive) return;
+        if (selectedCircleId !== null) setSelectedCircle(null);
     });
 
     document.getElementById('text-mode-btn').addEventListener('click', () => {
         if (!textModeActive && circleModeActive) setCircleMode(false);
+        if (!textModeActive) setSelectedCircle(null);
         setTextMode(!textModeActive);
     });
 
-    map.on('mouseenter', 'map-text-layer', () => {
-        if (draggingTextId === null && !textModeActive) map.getCanvas().style.cursor = 'move';
-    });
-    map.on('mouseleave', 'map-text-layer', () => {
-        if (draggingTextId === null && !textModeActive) map.getCanvas().style.cursor = '';
-    });
-    map.on('mousedown', 'map-text-layer', (e) => {
+    function beginEditSavedTextFeature(feature) {
+        if (!feature || !feature.geometry || !feature.properties) return;
+        const id = Number(feature.properties.textId);
+        if (!Number.isFinite(id)) return;
+        const idx = mapTextData.features.findIndex((f) => f.properties && Number(f.properties.textId) === id);
+        if (idx === -1) return;
+        const existing = mapTextData.features[idx];
+        mapTextData.features.splice(idx, 1);
+        refreshMapTextSource();
+        const coords = existing.geometry && existing.geometry.coordinates ? existing.geometry.coordinates : [0, 0];
+        const lngLat = { lng: coords[0], lat: coords[1] };
+        createTextDraftAt(lngLat, {
+            text: existing.properties.text || '',
+            textSize: Number(existing.properties.textSize) || 15,
+            editingId: id
+        });
+    }
+
+    function handleSavedNoteMouseDown(e) {
         const feature = e.features && e.features[0];
         if (!feature || !feature.properties) return;
         const id = Number(feature.properties.textId);
@@ -742,6 +1011,20 @@
         suppressNextTextClick = true;
         map.dragPan.disable();
         map.getCanvas().style.cursor = 'grabbing';
+    }
+    map.on('mouseenter', 'map-text-layer', () => {
+        if (draggingTextId === null && !textModeActive) map.getCanvas().style.cursor = 'move';
+    });
+    map.on('mouseleave', 'map-text-layer', () => {
+        if (draggingTextId === null && !textModeActive) map.getCanvas().style.cursor = '';
+    });
+    map.on('mousedown', 'map-text-layer', handleSavedNoteMouseDown);
+    map.on('click', 'map-text-layer', (e) => {
+        if (!textModeActive) return;
+        e.preventDefault();
+        if (e.originalEvent) e.originalEvent.stopPropagation();
+        const feature = e.features && e.features[0];
+        beginEditSavedTextFeature(feature);
     });
     map.on('mousemove', (e) => {
         if (draggingTextId === null) return;
@@ -764,21 +1047,26 @@
             suppressNextTextClick = false;
             return;
         }
-        const textValue = (document.getElementById('map-text-input').value || '').trim();
-        if (!textValue) return;
-        mapTextData.features.push({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [e.lngLat.lng, e.lngLat.lat] },
-            properties: { text: textValue, textId: nextMapTextId++ }
-        });
-        refreshMapTextSource();
-        pushAnnotationSnapshot();
+        if (activeTextDraft) finalizeActiveTextDraft(true);
+        createTextDraftAt(e.lngLat);
     });
 
     document.getElementById('undo-annotation-btn').addEventListener('click', undoAnnotation);
     document.getElementById('redo-annotation-btn').addEventListener('click', redoAnnotation);
-    document.getElementById('undo-regions-btn').addEventListener('click', undoAnnotation);
-    document.getElementById('redo-regions-btn').addEventListener('click', redoAnnotation);
+    document.getElementById('circle-resize-range').addEventListener('input', (e) => {
+        const radius = parseInt(e.target.value, 10);
+        if (!Number.isFinite(radius)) return;
+        if (selectedCircleId !== null) {
+            resizeSelectedCircle(radius);
+            return;
+        }
+        currentCircleRadiusMeters = radius;
+        const value = document.getElementById('circle-resize-value');
+        if (value) value.textContent = radius + ' m';
+    });
+    document.getElementById('circle-resize-range').addEventListener('change', () => {
+        if (selectedCircleId !== null) pushAnnotationSnapshot();
+    });
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && circleModeActive) setCircleMode(false);
@@ -788,6 +1076,7 @@
         btn.addEventListener('click', () => {
             document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            runRouteVisualization(false);
         });
     });
 
@@ -796,50 +1085,164 @@
     }
 
     async function getMapAnnotationsScreenshotDataUrl() {
-        const keepVisibleLayerIds = new Set([
-            'annotations-fill',
-            'annotations-line',
-            'annotations-linestring',
-            'annotations-point',
-            'user-circles-fill',
-            'user-circles-line',
-            'map-text-layer',
-            'route'
-        ]);
-        const hiddenLayerIds = [];
-        const style = map.getStyle();
-        if (!style || !Array.isArray(style.layers)) return null;
-
-        const startMarkerEl = routeStartMarker && routeStartMarker.getElement ? routeStartMarker.getElement() : null;
-        const endMarkerEl = routeEndMarker && routeEndMarker.getElement ? routeEndMarker.getElement() : null;
-        const prevStartDisplay = startMarkerEl ? startMarkerEl.style.display : '';
-        const prevEndDisplay = endMarkerEl ? endMarkerEl.style.display : '';
-
-        try {
-            style.layers.forEach(layer => {
-                const isDrawLayer = layer.id && layer.id.indexOf('gl-draw') === 0;
-                if (!keepVisibleLayerIds.has(layer.id) && !isDrawLayer) {
-                    const visibility = map.getLayoutProperty(layer.id, 'visibility');
-                    if (visibility !== 'none') {
-                        map.setLayoutProperty(layer.id, 'visibility', 'none');
-                        hiddenLayerIds.push(layer.id);
-                    }
-                }
-            });
-
-            if (startMarkerEl) startMarkerEl.style.display = 'none';
-            if (endMarkerEl) endMarkerEl.style.display = 'none';
-
-            await new Promise(resolve => map.once('idle', resolve));
-
-            return map.getCanvas().toDataURL('image/png');
-        } finally {
-            hiddenLayerIds.forEach(id => {
-                if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'visible');
-            });
-            if (startMarkerEl) startMarkerEl.style.display = prevStartDisplay;
-            if (endMarkerEl) endMarkerEl.style.display = prevEndDisplay;
+        if (!map || !map.getCanvas) return null;
+        if (!map.loaded()) {
+            await new Promise((resolve) => map.once('load', resolve));
         }
+        async function blobToDataUrl(blob) {
+            return new Promise((resolve) => {
+                if (!blob) return resolve(null);
+                const fr = new FileReader();
+                fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : null);
+                fr.onerror = () => resolve(null);
+                fr.readAsDataURL(blob);
+            });
+        }
+        async function captureFromCanvas() {
+            const canvas = map.getCanvas();
+            try {
+                const url = canvas.toDataURL('image/png');
+                if (url) return url;
+            } catch (e) {
+                // ignore and continue to blob fallback
+            }
+            try {
+                const blob = await new Promise((resolve) => {
+                    if (!canvas.toBlob) return resolve(null);
+                    canvas.toBlob((b) => resolve(b), 'image/png');
+                });
+                const blobUrl = await blobToDataUrl(blob);
+                if (blobUrl) return blobUrl;
+            } catch (e2) {
+                // ignore and continue to clone fallback
+            }
+            try {
+                const w = canvas.width || Math.max(1, canvas.clientWidth || 1);
+                const h = canvas.height || Math.max(1, canvas.clientHeight || 1);
+                const tmp = document.createElement('canvas');
+                tmp.width = w;
+                tmp.height = h;
+                const ctx = tmp.getContext('2d');
+                if (!ctx) return null;
+                ctx.drawImage(canvas, 0, 0, w, h);
+                return tmp.toDataURL('image/png');
+            } catch (e3) {
+                return null;
+            }
+        }
+        // Ensure latest map/annotation updates are painted before capture.
+        for (let i = 0; i < 5; i++) {
+            if (map.triggerRepaint) map.triggerRepaint();
+            await Promise.race([
+                new Promise((resolve) => map.once('idle', resolve)),
+                new Promise((resolve) => setTimeout(resolve, 220))
+            ]);
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const dataUrl = await captureFromCanvas();
+            if (dataUrl) return dataUrl;
+        }
+        return null;
+    }
+
+    async function buildMapSnapshotWithLegendDataUrl(mapDataUrl) {
+        if (!mapDataUrl) return null;
+        const legendRoot = document.getElementById('annotations-label-legend');
+        const mapCanvas = map.getCanvas ? map.getCanvas() : null;
+        if (!legendRoot || !mapCanvas) return mapDataUrl;
+
+        const legendRows = [];
+        for (let i = 0; i <= 7; i++) {
+            const sw = document.getElementById('label-legend-' + i + '-swatch');
+            const tx = document.getElementById('label-legend-' + i + '-text');
+            if (!sw || !tx) continue;
+            const label = (tx.textContent || '').trim();
+            if (!label) continue;
+            legendRows.push({
+                color: sw.style.background || '#95a5a6',
+                text: label
+            });
+        }
+        if (!legendRows.length) return mapDataUrl;
+
+        const legendTitleEl = document.getElementById('annotations-label-legend-title');
+        const legendTitle = ((legendTitleEl && legendTitleEl.textContent) || 'Legend').trim();
+
+        const mapImage = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = mapDataUrl;
+        });
+        if (!mapImage) return mapDataUrl;
+
+        const mapW = mapCanvas.width || mapImage.width || 1024;
+        const mapH = mapCanvas.height || mapImage.height || 1024;
+        const pad = 20;
+        const swatchSize = 16;
+        const rowGap = 10;
+        const titleGap = 14;
+        const legendWidth = 280;
+        const titleHeight = 24;
+        const legendHeight = pad + titleHeight + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
+        const outW = mapW + legendWidth + pad * 2;
+        const outH = Math.max(mapH + pad * 2, legendHeight);
+
+        const out = document.createElement('canvas');
+        out.width = outW;
+        out.height = outH;
+        const ctx = out.getContext('2d');
+        if (!ctx) return mapDataUrl;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, outW, outH);
+        ctx.drawImage(mapImage, pad, pad, mapW, mapH);
+
+        const legendX = pad + mapW + pad;
+        let y = pad + titleHeight;
+        ctx.fillStyle = '#222222';
+        ctx.font = '700 20px Lato, Arial, sans-serif';
+        ctx.fillText(legendTitle, legendX, y);
+        y += titleGap;
+
+        ctx.font = '15px Lato, Arial, sans-serif';
+        legendRows.forEach((row) => {
+            y += swatchSize;
+            ctx.fillStyle = row.color || '#95a5a6';
+            ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+            ctx.fillStyle = '#333333';
+            ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
+            y += rowGap;
+        });
+
+        return out.toDataURL('image/png');
+    }
+
+    async function buildGalleryPreviewDataUrl(sourceDataUrl) {
+        if (!sourceDataUrl) return null;
+        const srcImage = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = sourceDataUrl;
+        });
+        if (!srcImage) return null;
+        const maxSide = 420;
+        const srcW = srcImage.width || 1;
+        const srcH = srcImage.height || 1;
+        const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+        const w = Math.max(1, Math.round(srcW * scale));
+        const h = Math.max(1, Math.round(srcH * scale));
+        const out = document.createElement('canvas');
+        out.width = w;
+        out.height = h;
+        const ctx = out.getContext('2d');
+        if (!ctx) return sourceDataUrl;
+        ctx.drawImage(srcImage, 0, 0, w, h);
+        // JPEG thumbnail is much smaller for localStorage/gallery use.
+        return out.toDataURL('image/jpeg', 0.82);
     }
 
     let mapSnapshotDataUrl = null;
@@ -858,7 +1261,12 @@
     }
 
     function savePreviewGallery(list) {
-        localStorage.setItem(CO_DESIGN_PREVIEW_GALLERY_KEY, JSON.stringify(list));
+        try {
+            localStorage.setItem(CO_DESIGN_PREVIEW_GALLERY_KEY, JSON.stringify(list));
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 
     function appendPreviewToGallery(dataUrl, annotationsSnapshot) {
@@ -869,8 +1277,13 @@
             dataUrl,
             annotations: JSON.parse(JSON.stringify(annotationsSnapshot))
         });
-        savePreviewGallery(list);
-        return id;
+        if (savePreviewGallery(list)) return id;
+        // If storage is tight, drop oldest entries and keep the newest save.
+        while (list.length > 1) {
+            list.shift();
+            if (savePreviewGallery(list)) return id;
+        }
+        return null;
     }
 
     function removePreviewFromGalleryById(id) {
@@ -966,30 +1379,47 @@
     };
 
     function clearAllMapAnnotations() {
+        finalizeActiveTextDraft(false);
         applyAnnotationSnapshot(JSON.parse(JSON.stringify(EMPTY_ANNOTATION_SNAPSHOT)));
         pushAnnotationSnapshot();
     }
 
     document.getElementById('clear-annotations-btn').addEventListener('click', clearAllMapAnnotations);
-    document.getElementById('clear-regions-btn').addEventListener('click', clearAllMapAnnotations);
 
     async function runSaveMapPreview() {
+        finalizeActiveTextDraft(true);
+        syncAnnotations();
+        refreshMapTextSource();
+        if (map && map.triggerRepaint) map.triggerRepaint();
+        await Promise.race([
+            new Promise((resolve) => map.once('idle', resolve)),
+            new Promise((resolve) => setTimeout(resolve, 180))
+        ]);
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const saveBtn = document.getElementById('save-shapes-png');
-        const saveRegionsBtn = document.getElementById('save-regions-png-btn');
         saveBtn.disabled = true;
-        if (saveRegionsBtn) saveRegionsBtn.disabled = true;
         try {
-            const pngUrl = await getMapAnnotationsScreenshotDataUrl();
-            if (!pngUrl) return;
+            const mapOnlyPngUrl = await getMapAnnotationsScreenshotDataUrl();
+            if (!mapOnlyPngUrl) return;
+            const galleryPreviewDataUrl = await buildGalleryPreviewDataUrl(mapOnlyPngUrl) || mapOnlyPngUrl;
+            const pngUrl = await buildMapSnapshotWithLegendDataUrl(mapOnlyPngUrl) || mapOnlyPngUrl;
+            // Update preview first so user always sees immediate feedback.
+            mapSnapshotDataUrl = galleryPreviewDataUrl;
+            const previewImg = document.getElementById('map-snapshot-preview');
+            const previewWrap = document.getElementById('map-snapshot-preview-wrap');
+            if (previewImg) previewImg.src = galleryPreviewDataUrl;
+            if (previewWrap) previewWrap.style.display = '';
+            const link = document.createElement('a');
+            link.href = pngUrl;
+            link.download = 'map-annotations-snapshot.png';
+            link.click();
             const annotationsSnapshot = getAnnotationSnapshot();
-            selectedPreviewGalleryId = appendPreviewToGallery(pngUrl, annotationsSnapshot);
-            syncWrapFromSelected();
+            // Keep gallery/viewer payload lightweight and map-focused for reliability.
+            selectedPreviewGalleryId = appendPreviewToGallery(galleryPreviewDataUrl, annotationsSnapshot);
+            if (selectedPreviewGalleryId) syncWrapFromSelected();
             renderCreatorAnnotationGallery();
-            applyAnnotationSnapshot(JSON.parse(JSON.stringify(EMPTY_ANNOTATION_SNAPSHOT)));
-            pushAnnotationSnapshot();
         } finally {
             saveBtn.disabled = false;
-            if (saveRegionsBtn) saveRegionsBtn.disabled = false;
         }
     }
 
@@ -1022,10 +1452,6 @@
     } else {
         map.once('load', initCreatorPreviewGalleryFromStorage);
     }
-
-    document.getElementById('save-regions-png-btn').addEventListener('click', () => {
-        runSaveMapPreview();
-    });
 
     // ----- Address search suggestions for start & destination (Mapbox Geocoding) -----
     async function searchAddresses(query) {
@@ -1136,11 +1562,12 @@
     }
 
     // Route: geocode whatever the user typed (or selected) in each box and visualize the route
-    document.getElementById('calc-route').onclick = async () => {
+    async function runRouteVisualization(requireInputs) {
         var startText = (document.getElementById('start').value || '').trim();
         var endText = (document.getElementById('end').value || '').trim();
 
         if (!startText || !endText) {
+            if (!requireInputs) return;
             alert('Please type a starting address and a destination address.');
             return;
         }
@@ -1209,6 +1636,10 @@
             console.error('Error fetching route:', err);
             alert('Error fetching route. Please try again.');
         }
+    }
+
+    document.getElementById('calc-route').onclick = async () => {
+        runRouteVisualization(true);
     };
 </script>
 
