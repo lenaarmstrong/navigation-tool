@@ -1535,13 +1535,31 @@
     async function buildLegendSnapshotFromEntry(entry) {
         const sourceUrl = entry && (entry.previewPngUrl || entry.dataUrl || mapSnapshotDataUrl);
         if (!sourceUrl) return null;
+        async function toSafeImageUrl(url) {
+            if (!url || typeof url !== 'string') return url;
+            if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+            try {
+                const res = await fetch(url, { credentials: 'include' });
+                if (!res.ok) return url;
+                const blob = await res.blob();
+                return await new Promise((resolve) => {
+                    const fr = new FileReader();
+                    fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : url);
+                    fr.onerror = () => resolve(url);
+                    fr.readAsDataURL(blob);
+                });
+            } catch {
+                return url;
+            }
+        }
+        const safeSourceUrl = await toSafeImageUrl(sourceUrl);
         const mapImage = await new Promise((resolve) => {
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = () => resolve(null);
-            img.src = sourceUrl;
+            img.src = safeSourceUrl;
         });
-        if (!mapImage) return sourceUrl;
+        if (!mapImage) return safeSourceUrl;
 
         const legendItemsRaw = (entry && entry.annotations && entry.annotations.legend && Array.isArray(entry.annotations.legend.items))
             ? entry.annotations.legend.items
@@ -1552,7 +1570,7 @@
                 text: (item && typeof item.label === 'string') ? item.label.trim() : ''
             }))
             .filter((row) => row.text);
-        if (!legendRows.length) return sourceUrl;
+        if (!legendRows.length) return safeSourceUrl;
 
         const legendTitle = (entry && entry.annotations && entry.annotations.legend && entry.annotations.legend.title)
             ? String(entry.annotations.legend.title).trim()
@@ -1577,7 +1595,7 @@
         out.width = outW;
         out.height = outH;
         const ctx = out.getContext('2d');
-        if (!ctx) return sourceUrl;
+        if (!ctx) return safeSourceUrl;
 
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, outW, outH);
@@ -1608,7 +1626,11 @@
             y += rowGap;
         });
 
-        return out.toDataURL('image/png');
+        try {
+            return out.toDataURL('image/png');
+        } catch {
+            return safeSourceUrl;
+        }
     }
 
     function renderCreatorAnnotationGallery() {
@@ -1731,7 +1753,7 @@
         const filename = `map-annotations-${cleanUser}.png`;
         (async () => {
             try {
-                const pngUrl = await buildLegendSnapshotFromEntry(entry);
+                const pngUrl = entry.previewPngUrl || entry.dataUrl || mapSnapshotDataUrl;
                 if (!pngUrl) return;
                 if (pngUrl.startsWith('data:image/png')) {
                     const link = document.createElement('a');
