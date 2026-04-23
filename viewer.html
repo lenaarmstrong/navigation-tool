@@ -662,17 +662,27 @@
         renderSavedPreviewsFromCreator();
 
         async function forceDownloadPng(url, filename) {
-            const response = await fetch(url, { credentials: 'include' });
-            if (!response.ok) throw new Error(`Failed to download PNG (${response.status})`);
-            const blob = await response.blob();
-            const objectUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = objectUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(objectUrl);
+            const triggerDownload = (href) => {
+                const a = document.createElement('a');
+                a.href = href;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            };
+            try {
+                const response = await fetch(url, { credentials: 'include' });
+                if (!response.ok) {
+                    triggerDownload(url);
+                    return;
+                }
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                triggerDownload(objectUrl);
+                URL.revokeObjectURL(objectUrl);
+            } catch {
+                triggerDownload(url);
+            }
         }
 
         async function buildViewerLegendSnapshotDataUrl(entry) {

@@ -148,8 +148,8 @@
                     </div>
                     <div class="map-snapshot-actions">
                         <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Preview</button>
-                        <button type="button" id="map-snapshot-download-png-btn" class="map-snapshot-action-btn">.PNG</button>
-                        <button type="button" id="map-snapshot-download-json-btn" class="map-snapshot-action-btn">.JSON</button>
+                        <button type="button" id="map-snapshot-download-png-btn" class="map-snapshot-action-btn">Download Image</button>
+                        <button type="button" id="map-snapshot-download-json-btn" class="map-snapshot-action-btn">Download Shapes</button>
                     </div>
                 </div>
                 <div id="creator-saved-annotations-gallery" class="creator-saved-annotations-gallery" aria-label="All saved map previews"></div>
@@ -226,8 +226,8 @@
             circleHint: 'Turn on placement, then click the map to add a circle.',
             circleHintActive: 'Click the map to place a circle. Turn off when done.',
             mapSnapshotSavePng: 'Preview',
-            mapSnapshotDownloadPng: '.PNG',
-            mapSnapshotDownloadJson: '.JSON',
+            mapSnapshotDownloadPng: 'Download Image',
+            mapSnapshotDownloadJson: 'Download Shapes',
             mapSnapshotDelete: 'Delete',
             mapSnapshotPreviewAlt: 'Map snapshot preview',
             drawLineLabel: 'Line:',
@@ -286,8 +286,8 @@
             circleHint: 'Ative a colocação e clique no mapa para adicionar um círculo.',
             circleHintActive: 'Clique no mapa para colocar um círculo. Desative ao terminar.',
             mapSnapshotSavePng: 'Visualização',
-            mapSnapshotDownloadPng: '.PNG',
-            mapSnapshotDownloadJson: '.JSON',
+            mapSnapshotDownloadPng: 'Baixar imagem',
+            mapSnapshotDownloadJson: 'Baixar formas',
             mapSnapshotDelete: 'Excluir',
             mapSnapshotPreviewAlt: 'Pré-visualização da captura do mapa',
             drawLineLabel: 'Linha:',
@@ -1752,27 +1752,34 @@
         const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
         const filename = `map-annotations-${cleanUser}.png`;
         (async () => {
+            const directDownload = (url) => {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            };
             try {
                 const pngUrl = entry.previewPngUrl || entry.dataUrl || mapSnapshotDataUrl;
                 if (!pngUrl) return;
                 if (pngUrl.startsWith('data:image/png')) {
-                    const link = document.createElement('a');
-                    link.href = pngUrl;
-                    link.download = filename;
-                    link.click();
+                    directDownload(pngUrl);
                     return;
                 }
                 const res = await fetch(pngUrl, { credentials: 'include' });
-                if (!res.ok) return;
+                if (!res.ok) {
+                    directDownload(pngUrl);
+                    return;
+                }
                 const blob = await res.blob();
                 const objectUrl = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = objectUrl;
-                link.download = filename;
-                link.click();
+                directDownload(objectUrl);
                 URL.revokeObjectURL(objectUrl);
             } catch (error) {
                 console.error('Failed to download PNG', error);
+                const fallbackUrl = entry.previewPngUrl || entry.dataUrl || mapSnapshotDataUrl;
+                if (fallbackUrl) directDownload(fallbackUrl);
             }
         })();
     });
