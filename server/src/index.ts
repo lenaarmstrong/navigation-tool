@@ -16,10 +16,33 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
+const isProduction = process.env.NODE_ENV === 'production';
+const configuredOrigins = String(process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+const allowedOrigins = configuredOrigins.length
+  ? configuredOrigins
+  : ['https://lenaarmstrong.github.io', 'http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:8787'];
+const cookieSecure =
+  process.env.SESSION_COOKIE_SECURE === 'true' ||
+  (isProduction && process.env.SESSION_COOKIE_SECURE !== 'false');
+const cookieSameSite: 'lax' | 'none' = cookieSecure ? 'none' : 'lax';
+
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
 
 app.use(
   cors({
-    origin: true,
+    origin(origin, callback) {
+      // Allow requests from server-side tools and explicitly allowed browser origins.
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin not allowed by CORS: ${origin}`));
+    },
     credentials: true
   })
 );
@@ -34,8 +57,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
       maxAge: 1000 * 60 * 60 * 24 * 30
     }
   })

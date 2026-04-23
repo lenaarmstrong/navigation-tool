@@ -20,7 +20,10 @@
 Deploy the `server/` app and set these env vars:
 
 - `PORT=8787` (or host-provided port)
+- `NODE_ENV=production`
 - `SESSION_SECRET=<secure-random-string>`
+- `CORS_ORIGINS=https://lenaarmstrong.github.io,http://localhost:5500,http://127.0.0.1:5500`
+- `SESSION_COOKIE_SECURE=true` (recommended for HTTPS production)
 - `GOOGLE_DRIVE_FOLDER_ID=<your-folder-id>`
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL=<service-account-email>`
 - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=<private-key-with-\n-escapes>`
@@ -36,15 +39,13 @@ Before production, replace `https://YOUR_BACKEND_DOMAIN` in both files with your
 
 ## 4) Optional Runtime Override
 
-If needed, set this before app scripts run:
+Use `config.js` in repo root to set runtime API base for both `creator.html` and `viewer.html`:
 
 ```html
-<script>
-  window.__API_BASE__ = 'https://your-backend-domain.com';
-</script>
+window.__API_BASE__ = 'https://your-backend-domain.com';
 ```
 
-This overrides the default API base without editing app logic.
+Both pages load `config.js` automatically, so you only set it once.
 
 ## 5) Verify
 
