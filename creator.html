@@ -20,6 +20,7 @@
     <div class="top-bar">
         <h1 id="header-text">Tell Your Navigation Stories on the Map</h1>
         <span id="active-user-badge" class="active-user-badge" hidden></span>
+        <span id="backup-status-badge" class="active-user-badge" hidden></span>
         <button class="lang-btn" id="lang-btn" aria-label="Switch language">EN</button>
     </div>
     
@@ -173,6 +174,10 @@
 
 <div id="creator-login-overlay" class="creator-login-overlay">
     <form id="creator-login-form" class="creator-login-form">
+        <div id="creator-login-lang-row" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:6px;">
+            <button type="button" id="creator-login-lang-en" class="circle-secondary-btn" style="margin:0;padding:4px 10px;min-height:unset;">EN</button>
+            <button type="button" id="creator-login-lang-pt" class="circle-secondary-btn" style="margin:0;padding:4px 10px;min-height:unset;">PT</button>
+        </div>
         <h2 id="creator-login-title">Enter your name</h2>
         <input id="creator-login-name" type="text" maxlength="80" autocomplete="name" placeholder="Your name" required>
         <button type="submit" id="creator-login-submit">Continue</button>
@@ -243,7 +248,13 @@
             loginContinue: 'Continue',
             loginError: 'Please enter a valid name.',
             loginBadgePrefix: 'User: ',
-            mapSavedByPrefix: 'By: '
+            mapSavedByPrefix: 'By: ',
+            backupChecking: 'Backup: checking...',
+            backupConnected: 'Backup: connected',
+            backupNotConfigured: 'Backup: not configured',
+            backupDone: 'Drive backup complete',
+            backupPending: 'Drive backup pending',
+            backupFailed: 'Drive backup failed'
         },
         pt: {
             header: 'Compartilhe suas histórias de navegação no mapa',
@@ -303,7 +314,13 @@
             loginContinue: 'Continuar',
             loginError: 'Digite um nome válido.',
             loginBadgePrefix: 'Usuário: ',
-            mapSavedByPrefix: 'Por: '
+            mapSavedByPrefix: 'Por: ',
+            backupChecking: 'Backup: verificando...',
+            backupConnected: 'Backup: conectado',
+            backupNotConfigured: 'Backup: não configurado',
+            backupDone: 'Backup no Drive concluído',
+            backupPending: 'Backup no Drive pendente',
+            backupFailed: 'Backup no Drive falhou'
         }
     };
 
@@ -322,6 +339,7 @@
     let creatorPreviewGallery = [];
     let mapSnapshotDataUrl = null;
     let selectedPreviewGalleryId = null;
+    let backupConfigured = null;
 
     function applyLanguage(lang) {
         const t = translations[lang];
@@ -376,6 +394,19 @@
         if (loginTitle) loginTitle.textContent = t.loginTitle;
         if (loginName) loginName.placeholder = t.loginPlaceholder;
         if (loginSubmit) loginSubmit.textContent = t.loginContinue;
+        const loginEnBtn = document.getElementById('creator-login-lang-en');
+        const loginPtBtn = document.getElementById('creator-login-lang-pt');
+        if (loginEnBtn) {
+            loginEnBtn.textContent = 'EN';
+            loginEnBtn.classList.toggle('active', lang === 'en');
+            loginEnBtn.setAttribute('aria-pressed', lang === 'en' ? 'true' : 'false');
+        }
+        if (loginPtBtn) {
+            loginPtBtn.textContent = 'PT';
+            loginPtBtn.classList.toggle('active', lang === 'pt');
+            loginPtBtn.setAttribute('aria-pressed', lang === 'pt' ? 'true' : 'false');
+        }
+        renderBackupStatusBadge();
         updateCircleHintText();
     }
 
@@ -400,15 +431,66 @@
         renderCurrentUserBadge();
         document.getElementById('lang-btn').textContent = currentLang === 'en' ? 'EN' : 'PT';
     };
+    const creatorLoginLangEnBtn = document.getElementById('creator-login-lang-en');
+    const creatorLoginLangPtBtn = document.getElementById('creator-login-lang-pt');
+    if (creatorLoginLangEnBtn) {
+        creatorLoginLangEnBtn.addEventListener('click', () => {
+            currentLang = 'en';
+            localStorage.setItem('coDesignLang', currentLang);
+            applyLanguage(currentLang);
+            renderCurrentUserBadge();
+            document.getElementById('lang-btn').textContent = 'EN';
+        });
+    }
+    if (creatorLoginLangPtBtn) {
+        creatorLoginLangPtBtn.addEventListener('click', () => {
+            currentLang = 'pt';
+            localStorage.setItem('coDesignLang', currentLang);
+            applyLanguage(currentLang);
+            renderCurrentUserBadge();
+            document.getElementById('lang-btn').textContent = 'PT';
+        });
+    }
 
     applyLanguage(currentLang);
     document.getElementById('lang-btn').textContent = currentLang === 'en' ? 'EN' : 'PT';
+    refreshBackupStatus().catch(console.error);
 
     const loginOverlay = document.getElementById('creator-login-overlay');
     const loginForm = document.getElementById('creator-login-form');
     const loginNameInput = document.getElementById('creator-login-name');
     const loginError = document.getElementById('creator-login-error');
     const activeUserBadge = document.getElementById('active-user-badge');
+    const backupStatusBadge = document.getElementById('backup-status-badge');
+
+    function getDriveStatusLabel(status) {
+        const t = translations[currentLang];
+        if (status === 'done') return t.backupDone;
+        if (status === 'failed') return t.backupFailed;
+        return t.backupPending;
+    }
+
+    function renderBackupStatusBadge() {
+        if (!backupStatusBadge) return;
+        const t = translations[currentLang];
+        if (backupConfigured === null) {
+            backupStatusBadge.textContent = t.backupChecking;
+            backupStatusBadge.removeAttribute('hidden');
+            return;
+        }
+        backupStatusBadge.textContent = backupConfigured ? t.backupConnected : t.backupNotConfigured;
+        backupStatusBadge.removeAttribute('hidden');
+    }
+
+    async function refreshBackupStatus() {
+        try {
+            const status = await apiRequest('/api/backup-status');
+            backupConfigured = !!(status && status.configured);
+        } catch (e) {
+            backupConfigured = false;
+        }
+        renderBackupStatusBadge();
+    }
 
     function showLoginOverlay(message) {
         if (loginOverlay) loginOverlay.removeAttribute('hidden');
@@ -1548,6 +1630,20 @@
             img.src = item.dataUrl;
             img.alt = '';
             tile.appendChild(img);
+            const driveStatus = document.createElement('span');
+            driveStatus.style.position = 'absolute';
+            driveStatus.style.top = '4px';
+            driveStatus.style.right = '4px';
+            driveStatus.style.background = 'rgba(255,255,255,0.9)';
+            driveStatus.style.borderRadius = '10px';
+            driveStatus.style.padding = '1px 6px';
+            driveStatus.style.fontSize = '10px';
+            driveStatus.style.fontWeight = '700';
+            driveStatus.style.color = item.driveBackupStatus === 'done' ? '#2e7d32' : (item.driveBackupStatus === 'failed' ? '#c62828' : '#6a5acd');
+            driveStatus.textContent = item.driveBackupStatus === 'done' ? 'OK' : (item.driveBackupStatus === 'failed' ? 'ERR' : '...');
+            driveStatus.title = getDriveStatusLabel(item.driveBackupStatus);
+            tile.style.position = 'relative';
+            tile.appendChild(driveStatus);
             tile.addEventListener('click', () => {
                 selectedPreviewGalleryId = item.id;
                 syncWrapFromSelected();
