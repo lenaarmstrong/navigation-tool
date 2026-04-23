@@ -675,6 +675,86 @@
             URL.revokeObjectURL(objectUrl);
         }
 
+        async function buildViewerLegendSnapshotDataUrl(entry) {
+            if (!entry) return null;
+            const sourceUrl = entry.previewPngUrl || entry.dataUrl;
+            if (!sourceUrl) return null;
+            const mapImage = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = sourceUrl;
+            });
+            if (!mapImage) return sourceUrl;
+
+            const rawItems = (entry.annotations && entry.annotations.legend && Array.isArray(entry.annotations.legend.items))
+                ? entry.annotations.legend.items
+                : [];
+            const legendRows = rawItems
+                .map((item, i) => ({
+                    color: (item && item.color) || ANNOTATION_COLORS[i] || '#95a5a6',
+                    text: (item && typeof item.label === 'string') ? item.label.trim() : ''
+                }))
+                .filter((row) => row.text);
+            if (!legendRows.length) return sourceUrl;
+
+            const legendTitle = (entry.annotations && entry.annotations.legend && entry.annotations.legend.title)
+                ? String(entry.annotations.legend.title).trim()
+                : (viewerLang === 'pt' ? 'Legenda' : 'Legend');
+            const authorName = ((entry.userDisplayName || (entry.annotations && entry.annotations.userDisplayName) || '').trim());
+            const authorPrefix = viewerLang === 'pt' ? 'Por: ' : 'By: ';
+            const authorLabel = authorName ? `${authorPrefix}${authorName}` : '';
+
+            const mapW = mapImage.width || 1024;
+            const mapH = mapImage.height || 1024;
+            const pad = 20;
+            const swatchSize = 16;
+            const rowGap = 10;
+            const titleGap = 14;
+            const userGap = authorLabel ? 16 : 0;
+            const legendWidth = 280;
+            const titleHeight = 24;
+            const legendHeight = pad + titleHeight + userGap + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
+            const outW = mapW + legendWidth + pad * 2;
+            const outH = Math.max(mapH + pad * 2, legendHeight);
+
+            const out = document.createElement('canvas');
+            out.width = outW;
+            out.height = outH;
+            const ctx = out.getContext('2d');
+            if (!ctx) return sourceUrl;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, outW, outH);
+            ctx.drawImage(mapImage, pad, pad, mapW, mapH);
+
+            const legendX = pad + mapW + pad;
+            let y = pad + titleHeight;
+            ctx.fillStyle = '#222222';
+            ctx.font = '700 20px Lato, Arial, sans-serif';
+            ctx.fillText(legendTitle, legendX, y);
+            if (authorLabel) {
+                y += 20;
+                ctx.fillStyle = '#555555';
+                ctx.font = '600 14px Lato, Arial, sans-serif';
+                ctx.fillText(authorLabel, legendX, y);
+            }
+            y += titleGap;
+
+            ctx.font = '15px Lato, Arial, sans-serif';
+            legendRows.forEach((row) => {
+                y += swatchSize;
+                ctx.fillStyle = row.color || '#95a5a6';
+                ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+                ctx.fillStyle = '#333333';
+                ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
+                y += rowGap;
+            });
+            return out.toDataURL('image/png');
+        }
+
         document.getElementById('viewer-save-png-btn').addEventListener('click', () => {
             const entries = getViewerSelectedEntries();
             if (!entries.length) return;
@@ -695,12 +775,19 @@
             const entries = getViewerSelectedEntries();
             if (!entries.length) return;
             entries.forEach((e, i) => {
-                const downloadUrl = e.previewPngUrl || e.dataUrl;
-                if (!downloadUrl) return;
                 setTimeout(async () => {
                     const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
                     const filename = 'map-annotations-snapshot-' + suffix + '.png';
                     try {
+                        const downloadUrl = await buildViewerLegendSnapshotDataUrl(e);
+                        if (!downloadUrl) return;
+                        if (downloadUrl.startsWith('data:image/png')) {
+                            const a = document.createElement('a');
+                            a.href = downloadUrl;
+                            a.download = filename;
+                            a.click();
+                            return;
+                        }
                         await forceDownloadPng(downloadUrl, filename);
                     } catch (error) {
                         console.error('PNG download failed', error);

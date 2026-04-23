@@ -126,9 +126,9 @@
         <!-- <p id="hint-text" style="font-size: 12px; color: #666;">Use the top-right toolbar to draw annotations.</p> -->
         <div style="border-top: 1px solid #eee; padding-top: 12px;">
             <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch;">
+                <button type="button" id="save-shapes-png" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Save</button>
                 <button type="button" id="undo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Undo</button>
                 <button type="button" id="redo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Redo</button>
-                <button type="button" id="save-shapes-png" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Save</button>
                 <button type="button" id="clear-annotations-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Clear</button>
             </div>
         </div>
@@ -150,7 +150,6 @@
                         <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Preview</button>
                         <button type="button" id="map-snapshot-download-png-btn" class="map-snapshot-action-btn">.PNG</button>
                         <button type="button" id="map-snapshot-download-json-btn" class="map-snapshot-action-btn">.JSON</button>
-                        <button type="button" id="map-snapshot-delete-btn" class="map-snapshot-action-btn map-snapshot-delete-btn">Delete</button>
                     </div>
                 </div>
                 <div id="creator-saved-annotations-gallery" class="creator-saved-annotations-gallery" aria-label="All saved map previews"></div>
@@ -353,7 +352,6 @@
         document.getElementById('map-snapshot-save-png-btn').textContent = t.mapSnapshotSavePng;
         document.getElementById('map-snapshot-download-png-btn').textContent = t.mapSnapshotDownloadPng;
         document.getElementById('map-snapshot-download-json-btn').textContent = t.mapSnapshotDownloadJson;
-        document.getElementById('map-snapshot-delete-btn').textContent = t.mapSnapshotDelete;
         const drawLineLabel = document.getElementById('draw-tool-line-label');
         const drawRegionLabel = document.getElementById('draw-tool-region-label');
         const drawPointLabel = document.getElementById('draw-tool-point-label');
@@ -1534,6 +1532,85 @@
         raiseAnnotationLayersToTop();
     }
 
+    async function buildLegendSnapshotFromEntry(entry) {
+        const sourceUrl = entry && (entry.previewPngUrl || entry.dataUrl || mapSnapshotDataUrl);
+        if (!sourceUrl) return null;
+        const mapImage = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = sourceUrl;
+        });
+        if (!mapImage) return sourceUrl;
+
+        const legendItemsRaw = (entry && entry.annotations && entry.annotations.legend && Array.isArray(entry.annotations.legend.items))
+            ? entry.annotations.legend.items
+            : [];
+        const legendRows = legendItemsRaw
+            .map((item, i) => ({
+                color: (item && item.color) || ANNOTATION_COLORS[i] || '#95a5a6',
+                text: (item && typeof item.label === 'string') ? item.label.trim() : ''
+            }))
+            .filter((row) => row.text);
+        if (!legendRows.length) return sourceUrl;
+
+        const legendTitle = (entry && entry.annotations && entry.annotations.legend && entry.annotations.legend.title)
+            ? String(entry.annotations.legend.title).trim()
+            : ((document.getElementById('annotations-label-legend-title')?.textContent || 'Legend').trim());
+        const authorName = ((entry && entry.userDisplayName) || (entry && entry.annotations && entry.annotations.userDisplayName) || currentUser || '').trim();
+        const userNameLabel = authorName ? `${translations[currentLang].mapSavedByPrefix}${authorName}` : '';
+
+        const mapW = mapImage.width || 1024;
+        const mapH = mapImage.height || 1024;
+        const pad = 20;
+        const swatchSize = 16;
+        const rowGap = 10;
+        const titleGap = 14;
+        const userGap = userNameLabel ? 16 : 0;
+        const legendWidth = 280;
+        const titleHeight = 24;
+        const legendHeight = pad + titleHeight + userGap + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
+        const outW = mapW + legendWidth + pad * 2;
+        const outH = Math.max(mapH + pad * 2, legendHeight);
+
+        const out = document.createElement('canvas');
+        out.width = outW;
+        out.height = outH;
+        const ctx = out.getContext('2d');
+        if (!ctx) return sourceUrl;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, outW, outH);
+        ctx.drawImage(mapImage, pad, pad, mapW, mapH);
+
+        const legendX = pad + mapW + pad;
+        let y = pad + titleHeight;
+        ctx.fillStyle = '#222222';
+        ctx.font = '700 20px Lato, Arial, sans-serif';
+        ctx.fillText(legendTitle || 'Legend', legendX, y);
+        if (userNameLabel) {
+            y += 20;
+            ctx.fillStyle = '#555555';
+            ctx.font = '600 14px Lato, Arial, sans-serif';
+            ctx.fillText(userNameLabel, legendX, y);
+        }
+        y += titleGap;
+        ctx.font = '15px Lato, Arial, sans-serif';
+        legendRows.forEach((row) => {
+            y += swatchSize;
+            ctx.fillStyle = row.color || '#95a5a6';
+            ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+            ctx.fillStyle = '#333333';
+            ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
+            y += rowGap;
+        });
+
+        return out.toDataURL('image/png');
+    }
+
     function renderCreatorAnnotationGallery() {
         const host = document.getElementById('creator-saved-annotations-gallery');
         if (!host) return;
@@ -1634,52 +1711,44 @@
     });
 
     document.getElementById('map-snapshot-save-png-btn').addEventListener('click', () => {
-        restoreSelectedGalleryAnnotations();
+        const entry = getGalleryEntryForShownPreview();
+        if (!entry) return;
+        (async () => {
+            const previewUrl = await buildLegendSnapshotFromEntry(entry);
+            if (!previewUrl) return;
+            const previewImg = document.getElementById('map-snapshot-preview');
+            const previewWrap = document.getElementById('map-snapshot-preview-wrap');
+            mapSnapshotDataUrl = previewUrl;
+            if (previewImg) previewImg.src = previewUrl;
+            if (previewWrap) previewWrap.style.display = '';
+        })();
     });
 
     document.getElementById('map-snapshot-download-png-btn').addEventListener('click', () => {
         const entry = getGalleryEntryForShownPreview();
-        const pngUrl = entry && entry.previewPngUrl ? entry.previewPngUrl : mapSnapshotDataUrl;
-        if (!pngUrl) return;
+        if (!entry) return;
         const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
         const filename = `map-annotations-${cleanUser}.png`;
         (async () => {
             try {
+                const pngUrl = await buildLegendSnapshotFromEntry(entry);
+                if (!pngUrl) return;
+                if (pngUrl.startsWith('data:image/png')) {
+                    const link = document.createElement('a');
+                    link.href = pngUrl;
+                    link.download = filename;
+                    link.click();
+                    return;
+                }
                 const res = await fetch(pngUrl, { credentials: 'include' });
                 if (!res.ok) return;
                 const blob = await res.blob();
-                if (blob.type === 'image/png') {
-                    const objectUrl = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = objectUrl;
-                    link.download = filename;
-                    link.click();
-                    URL.revokeObjectURL(objectUrl);
-                    return;
-                }
-                // If source is jpeg/webp preview, convert to PNG before download.
-                const img = await new Promise((resolve) => {
-                    const el = new Image();
-                    el.onload = () => resolve(el);
-                    el.onerror = () => resolve(null);
-                    el.src = URL.createObjectURL(blob);
-                });
-                if (!img) return;
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width || 1;
-                canvas.height = img.height || 1;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return;
-                ctx.drawImage(img, 0, 0);
-                canvas.toBlob((pngBlob) => {
-                    if (!pngBlob) return;
-                    const objectUrl = URL.createObjectURL(pngBlob);
-                    const link = document.createElement('a');
-                    link.href = objectUrl;
-                    link.download = filename;
-                    link.click();
-                    URL.revokeObjectURL(objectUrl);
-                }, 'image/png');
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(objectUrl);
             } catch (error) {
                 console.error('Failed to download PNG', error);
             }
@@ -1706,14 +1775,6 @@
         link.download = `map-annotations-${cleanUser}.json`;
         link.click();
         URL.revokeObjectURL(url);
-    });
-
-    document.getElementById('map-snapshot-delete-btn').addEventListener('click', async () => {
-        await removePreviewFromGalleryById(selectedPreviewGalleryId);
-        const list = loadPreviewGallery();
-        selectedPreviewGalleryId = list.length ? list[list.length - 1].id : null;
-        syncWrapFromSelected();
-        renderCreatorAnnotationGallery();
     });
 
     document.getElementById('map-snapshot-preview-square').addEventListener('click', () => {
