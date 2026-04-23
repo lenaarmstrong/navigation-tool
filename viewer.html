@@ -172,6 +172,15 @@
         .saved-previews-gallery .viewer-saved-preview-hint {
             margin-top: 0;
         }
+
+        .viewer-user-group-title {
+            width: 100%;
+            margin: 8px 0 6px 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #3a3a55;
+        }
+
     </style>
 </head>
 <body>
@@ -190,7 +199,9 @@
         <h2 class="visualization-heading" id="viewer-saved-previews-heading">Saved Map Previews</h2>
         <div id="saved-previews-gallery" class="saved-previews-gallery" aria-label="Saved map previews from creator"></div>
         <div id="viewer-preview-toolbar" class="viewer-preview-toolbar" hidden>
-            <button type="button" id="viewer-save-png-btn" class="viewer-preview-toolbar-btn">Save as PNG</button>
+            <button type="button" id="viewer-save-png-btn" class="viewer-preview-toolbar-btn">Preview</button>
+            <button type="button" id="viewer-download-png-btn" class="viewer-preview-toolbar-btn">Download PNG</button>
+            <button type="button" id="viewer-save-json-btn" class="viewer-preview-toolbar-btn">Download JSON</button>
             <button type="button" id="viewer-show-map-btn" class="viewer-preview-toolbar-btn">Show on map</button>
             <button type="button" id="viewer-delete-preview-btn" class="viewer-preview-toolbar-btn viewer-preview-delete-btn">Delete</button>
         </div>
@@ -220,12 +231,15 @@
                 savedPreviewsHeading: 'Saved Maps',
                 galleryAria: 'Saved map previews from creator',
                 mapAria: 'Map showing selected preview annotations',
-                savePng: 'Save as PNG',
+                savePng: 'Preview',
+                downloadPng: 'Download PNG',
+                saveJson: 'Download JSON',
                 showMap: 'Show on map',
                 delete: 'Delete',
                 emptyGallery: 'No saved previews yet. Use Save on the Creator page to add previews here.',
                 hint: 'Click saved annotations to show them on the map, save them, or delete them.',
-                tileAriaLabel: 'Map preview'
+                tileAriaLabel: 'Map preview',
+                loginNeeded: 'Open Creator and enter your name to view your saved previews.'
             },
             pt: {
                 pageTitle: 'Visualizador',
@@ -237,12 +251,15 @@
                 savedPreviewsHeading: 'Mapas salvas',
                 galleryAria: 'Pré-visualizações do mapa salvas no Criador',
                 mapAria: 'Mapa com anotações das pré-visualizações selecionadas',
-                savePng: 'Salvar como PNG',
+                savePng: 'Visualização',
+                downloadPng: 'Baixar PNG',
+                saveJson: 'Baixar JSON',
                 showMap: 'Mostrar no mapa',
                 delete: 'Excluir',
                 emptyGallery: 'Nenhuma captura salva ainda. Use Salvar no Criador para adicionar pré-visualizações aqui.',
                 hint: 'Clique nas anotações salvas para mostrar no mapa, salvar, ou exluir.',
-                tileAriaLabel: 'Pré-visualização do mapa'
+                tileAriaLabel: 'Pré-visualização do mapa',
+                loginNeeded: 'Abra o Criador e informe seu nome para ver seus mapas salvos.'
             }
         };
 
@@ -281,7 +298,16 @@
 
         mapboxgl.accessToken = 'pk.eyJ1IjoibGVuYWFybXMiLCJhIjoiY205N3V0aGw2MGJnMDJsb2tiNDB1czFzaiJ9.bTzeSaHAUueU3tJHFNXyAA';
 
-        const CO_DESIGN_PREVIEW_GALLERY_KEY = 'coDesignMapPreviewGallery';
+        const API_BASE = (() => {
+            const explicit = (typeof window !== 'undefined' && window.__API_BASE__) ? String(window.__API_BASE__).trim() : '';
+            if (explicit) return explicit.replace(/\/+$/, '');
+            const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+            // Local development default.
+            if (!host || host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8787';
+            // Production default (set your deployed backend URL here).
+            return 'https://YOUR_BACKEND_DOMAIN';
+        })();
+        const USER_NAME_KEY = 'coDesignUserName';
         const ANNOTATION_COLORS = ['#43159e', '#335145', '#F7B32B', '#3066BE', '#8CBA80', '#88CCF1', '#a64b00'];
 
         let viewerSelectedPreviewIds = new Set();
@@ -289,19 +315,50 @@
         let viewerMapLayersReady = false;
         let viewerMapContainerShown = false;
         const viewerMapInitCallbacks = [];
+        let viewerPreviewGallery = [];
 
-        function loadPreviewGallery() {
-            try {
-                const raw = localStorage.getItem(CO_DESIGN_PREVIEW_GALLERY_KEY);
-                const arr = JSON.parse(raw || '[]');
-                return Array.isArray(arr) ? arr : [];
-            } catch (e) {
-                return [];
+        async function apiRequest(path, options) {
+            const res = await fetch(`${API_BASE}${path}`, {
+                credentials: 'include',
+                ...options
+            });
+            if (!res.ok) {
+                let message = `Request failed (${res.status})`;
+                try {
+                    const json = await res.json();
+                    if (json && json.error) message = json.error;
+                } catch (e) {
+                    // fallback
+                }
+                throw new Error(message);
             }
+            return res.json();
         }
 
-        function savePreviewGallery(list) {
-            localStorage.setItem(CO_DESIGN_PREVIEW_GALLERY_KEY, JSON.stringify(list));
+        function toAbsoluteApiUrl(url) {
+            if (!url || typeof url !== 'string') return url;
+            if (/^https?:\/\//i.test(url)) return url;
+            if (url.startsWith('/')) return `${API_BASE}${url}`;
+            return url;
+        }
+
+        function normalizePreviewEntry(entry) {
+            if (!entry || typeof entry !== 'object') return entry;
+            return {
+                ...entry,
+                dataUrl: toAbsoluteApiUrl(entry.dataUrl),
+                previewPngUrl: toAbsoluteApiUrl(entry.previewPngUrl)
+            };
+        }
+
+        function loadPreviewGallery() {
+            return Array.isArray(viewerPreviewGallery) ? viewerPreviewGallery : [];
+        }
+
+        async function refreshViewerGallery() {
+            const payload = await apiRequest('/api/previews');
+            viewerPreviewGallery = Array.isArray(payload.previews) ? payload.previews.map(normalizePreviewEntry) : [];
+            return viewerPreviewGallery;
         }
 
         function getViewerSelectedEntries() {
@@ -505,12 +562,17 @@
                 });
         }
 
+
         function setViewerToolbarLabels() {
             const t = viewerTranslations[viewerLang];
             const saveBtn = document.getElementById('viewer-save-png-btn');
+            const downloadPngBtn = document.getElementById('viewer-download-png-btn');
+            const saveJsonBtn = document.getElementById('viewer-save-json-btn');
             const showBtn = document.getElementById('viewer-show-map-btn');
             const delBtn = document.getElementById('viewer-delete-preview-btn');
             if (saveBtn) saveBtn.textContent = t.savePng;
+            if (downloadPngBtn) downloadPngBtn.textContent = t.downloadPng;
+            if (saveJsonBtn) saveJsonBtn.textContent = t.saveJson;
             if (showBtn) showBtn.textContent = t.showMap;
             if (delBtn) delBtn.textContent = t.delete;
         }
@@ -539,58 +601,139 @@
             hint.className = 'viewer-saved-preview-hint';
             hint.textContent = viewerTranslations[viewerLang].hint;
             container.appendChild(hint);
+
+            const groups = new Map();
+            const order = [];
             items.forEach((entry) => {
                 if (!entry || !entry.dataUrl) return;
-                const tile = document.createElement('div');
-                tile.className = 'saved-preview-tile';
-                const isSelected = entry.id && viewerSelectedPreviewIds.has(entry.id);
-                if (isSelected) tile.classList.add('selected');
-                tile.setAttribute('role', 'checkbox');
-                tile.setAttribute('tabindex', '0');
-                tile.setAttribute('aria-checked', isSelected ? 'true' : 'false');
-                tile.setAttribute('aria-label', viewerTranslations[viewerLang].tileAriaLabel);
-                const img = document.createElement('img');
-                img.src = entry.dataUrl;
-                img.alt = '';
-                tile.appendChild(img);
-                function toggleSelection() {
-                    if (viewerSelectedPreviewIds.has(entry.id)) viewerSelectedPreviewIds.delete(entry.id);
-                    else viewerSelectedPreviewIds.add(entry.id);
-                    renderSavedPreviewsFromCreator();
-                    updateViewerToolbarVisibility();
-                    if (viewerMapLayersReady && viewerMapContainerShown) {
-                        applyMergedSnapshotsToViewerMap(getViewerSelectedEntries());
-                    }
+                const userName = (entry.userDisplayName || 'Unknown user').trim() || 'Unknown user';
+                if (!groups.has(userName)) {
+                    groups.set(userName, []);
+                    order.push(userName);
                 }
-                tile.addEventListener('click', toggleSelection);
-                tile.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleSelection();
+                groups.get(userName).push(entry);
+            });
+
+            order.forEach((userName) => {
+                const header = document.createElement('p');
+                header.className = 'viewer-user-group-title';
+                header.textContent = userName;
+                container.appendChild(header);
+
+                const userItems = groups.get(userName) || [];
+                userItems.forEach((entry) => {
+                    const tile = document.createElement('div');
+                    tile.className = 'saved-preview-tile';
+                    const isSelected = entry.id && viewerSelectedPreviewIds.has(entry.id);
+                    if (isSelected) tile.classList.add('selected');
+                    tile.setAttribute('role', 'checkbox');
+                    tile.setAttribute('tabindex', '0');
+                    tile.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+                    tile.setAttribute('aria-label', viewerTranslations[viewerLang].tileAriaLabel);
+                    const img = document.createElement('img');
+                    img.src = entry.dataUrl;
+                    img.alt = '';
+                    tile.appendChild(img);
+                    function toggleSelection() {
+                        if (viewerSelectedPreviewIds.has(entry.id)) viewerSelectedPreviewIds.delete(entry.id);
+                        else viewerSelectedPreviewIds.add(entry.id);
+                        renderSavedPreviewsFromCreator();
+                        updateViewerToolbarVisibility();
+                        if (viewerMapLayersReady && viewerMapContainerShown) {
+                            applyMergedSnapshotsToViewerMap(getViewerSelectedEntries());
+                        }
                     }
+                    tile.addEventListener('click', toggleSelection);
+                    tile.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleSelection();
+                        }
+                    });
+                    container.appendChild(tile);
                 });
-                container.appendChild(tile);
             });
             updateViewerToolbarVisibility();
         }
 
+
         applyViewerLanguage();
         renderSavedPreviewsFromCreator();
+
+        async function forceDownloadPng(url, filename) {
+            const response = await fetch(url, { credentials: 'include' });
+            if (!response.ok) throw new Error(`Failed to download PNG (${response.status})`);
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(objectUrl);
+        }
 
         document.getElementById('viewer-save-png-btn').addEventListener('click', () => {
             const entries = getViewerSelectedEntries();
             if (!entries.length) return;
             entries.forEach((e, i) => {
-                if (!e.dataUrl) return;
+                const downloadUrl = e.previewPngUrl || e.dataUrl;
+                if (!downloadUrl) return;
                 setTimeout(() => {
                     const a = document.createElement('a');
-                    a.href = e.dataUrl;
+                    a.href = downloadUrl;
                     const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
                     a.download = 'map-annotations-snapshot-' + suffix + '.png';
                     a.click();
                 }, i * 200);
             });
         });
+
+        document.getElementById('viewer-download-png-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            entries.forEach((e, i) => {
+                const downloadUrl = e.previewPngUrl || e.dataUrl;
+                if (!downloadUrl) return;
+                setTimeout(async () => {
+                    const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
+                    const filename = 'map-annotations-snapshot-' + suffix + '.png';
+                    try {
+                        await forceDownloadPng(downloadUrl, filename);
+                    } catch (error) {
+                        console.error('PNG download failed', error);
+                    }
+                }, i * 200);
+            });
+        });
+
+        document.getElementById('viewer-save-json-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            const payload = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                entries: entries.map((entry) => ({
+                    id: entry.id || null,
+                    title: entry.title || null,
+                    userId: entry.userId || null,
+                    userDisplayName: entry.userDisplayName || null,
+                    createdAt: entry.createdAt || null,
+                    updatedAt: entry.updatedAt || null,
+                    annotations: entry.annotations || null
+                }))
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const suffix = entries.length > 1 ? `${entries.length}-selected` : 'selected';
+            a.download = `map-previews-${suffix}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
 
         document.getElementById('viewer-show-map-btn').addEventListener('click', () => {
             const entries = getViewerSelectedEntries();
@@ -606,15 +749,28 @@
             });
         });
 
-        document.getElementById('viewer-delete-preview-btn').addEventListener('click', () => {
+
+        document.getElementById('viewer-delete-preview-btn').addEventListener('click', async () => {
             const toRemove = new Set(getViewerSelectedEntries().map((e) => e.id));
             if (!toRemove.size) return;
-            savePreviewGallery(loadPreviewGallery().filter((item) => !toRemove.has(item.id)));
+            await Promise.all(
+                Array.from(toRemove).map((id) =>
+                    apiRequest(`/api/previews/${encodeURIComponent(id)}`, { method: 'DELETE' })
+                )
+            );
+            await refreshViewerGallery();
             viewerSelectedPreviewIds = new Set();
             clearViewerMapSources();
             renderSavedPreviewsFromCreator();
             if (viewerMap) viewerMap.resize();
         });
+
+        async function initViewerData() {
+            await refreshViewerGallery();
+            renderSavedPreviewsFromCreator();
+        }
+
+        initViewerData().catch(console.error);
     </script>
 
 </body>
