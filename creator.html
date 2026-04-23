@@ -307,7 +307,7 @@
         }
     };
 
-    let currentLang = localStorage.getItem('coDesignLang') === 'pt' ? 'pt' : 'en';
+    let currentLang = localStorage.getItem('coDesignLang') === 'en' ? 'en' : 'pt';
     const USER_NAME_KEY = 'coDesignUserName';
     const API_BASE = (() => {
         const explicit = (typeof window !== 'undefined' && window.__API_BASE__) ? String(window.__API_BASE__).trim() : '';
@@ -1730,7 +1730,7 @@
     async function searchAddresses(query) {
         const trimmed = (query || '').trim();
         if (!trimmed) return [];
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}&limit=6`;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}&limit=6&country=br`;
         const res = await fetch(url);
         if (!res.ok) return [];
         const data = await res.json();
@@ -1827,7 +1827,7 @@
     async function getCoords(address) {
         const trimmed = (address || '').trim();
         if (!trimmed) return null;
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}`;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}&country=br`;
         const res = await fetch(url);
         const data = await res.json();
         if (!data.features || data.features.length === 0) return null;
