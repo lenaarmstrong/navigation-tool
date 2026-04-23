@@ -314,8 +314,8 @@
         const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
         // Local development default.
         if (!host || host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8787';
-        // GitHub Pages/production default backend.
-        return 'https://navigation-tool-api.onrender.com';
+        // Production default (set your deployed backend URL here).
+        return 'https://YOUR_BACKEND_DOMAIN';
     })();
     let currentUser = null;
     let creatorPreviewGallery = [];
