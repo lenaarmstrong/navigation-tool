@@ -304,8 +304,8 @@
             const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
             // Local development default.
             if (!host || host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8787';
-            // Production default (set your deployed backend URL here).
-            return 'https://YOUR_BACKEND_DOMAIN';
+            // GitHub Pages/production default backend.
+            return 'https://navigation-tool-api.onrender.com';
         })();
         const USER_NAME_KEY = 'coDesignUserName';
         const ANNOTATION_COLORS = ['#43159e', '#335145', '#F7B32B', '#3066BE', '#8CBA80', '#88CCF1', '#a64b00'];
