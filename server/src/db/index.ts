@@ -1,18 +1,15 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { open, type Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
+import { getDataDir } from '../config/paths.js';
 
 let dbInstance: Database | null = null;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export async function getDb(): Promise<Database> {
   if (dbInstance) return dbInstance;
 
-  const dataDir = path.resolve(__dirname, '../../data');
+  const dataDir = getDataDir();
   await fs.mkdir(dataDir, { recursive: true });
 
   const dbPath = path.join(dataDir, 'app.sqlite');

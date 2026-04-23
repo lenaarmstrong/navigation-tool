@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { google, type drive_v3 } from 'googleapis';
 import type { Database } from 'sqlite';
+import { getDataDir } from '../config/paths.js';
 import type { PreviewRecord } from '../types.js';
 
 type BackupResult = {
@@ -11,9 +11,7 @@ type BackupResult = {
 };
 
 let driveClient: drive_v3.Drive | null = null;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../../data');
+const DATA_DIR = getDataDir();
 
 function getDriveConfig(): { folderId: string; email: string; privateKey: string } {
   return {

@@ -7,6 +7,7 @@ import cors from 'cors';
 import { getDb } from './db/index.js';
 import sessionRoutes from './routes/session.js';
 import previewRoutes from './routes/previews.js';
+import { getDataDir } from './config/paths.js';
 import { getDriveBackupStatus, processDriveBackupQueue } from './services/driveBackup.js';
 import './types.js';
 
@@ -93,7 +94,7 @@ app.get('/api/backup-status', (_req, res) => {
 app.use('/api/session', sessionRoutes);
 app.use('/api/previews', previewRoutes);
 
-const uploadsRoot = path.resolve(__dirname, '../data');
+const uploadsRoot = getDataDir();
 app.use('/uploads', express.static(uploadsRoot));
 
 async function start(): Promise<void> {
@@ -101,6 +102,7 @@ async function start(): Promise<void> {
   const backupStatus = getDriveBackupStatus();
   app.listen(port, () => {
     console.log(`Server listening on http://localhost:${port}`);
+    console.log(`Using data directory: ${uploadsRoot}`);
     if (!backupStatus.configured) {
       console.warn(
         'Google Drive backup is not configured. Set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in server/.env'

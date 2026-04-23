@@ -357,9 +357,7 @@
         }
 
         async function refreshViewerGallery() {
-            const currentUserName = (localStorage.getItem(USER_NAME_KEY) || '').trim();
-            const userQuery = currentUserName ? `?userName=${encodeURIComponent(currentUserName)}` : '';
-            const payload = await apiRequest(`/api/previews${userQuery}`);
+            const payload = await apiRequest('/api/previews');
             viewerPreviewGallery = Array.isArray(payload.previews) ? payload.previews.map(normalizePreviewEntry) : [];
             return viewerPreviewGallery;
         }

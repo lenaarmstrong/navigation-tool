@@ -21,12 +21,15 @@ Deploy the `server/` app and set these env vars:
 
 - `PORT=8787` (or host-provided port)
 - `NODE_ENV=production`
+- `DATA_DIR=/var/data/co-design` (or your host's persistent disk mount path)
 - `SESSION_SECRET=<secure-random-string>`
 - `CORS_ORIGINS=https://lenaarmstrong.github.io,http://localhost:5500,http://127.0.0.1:5500`
 - `SESSION_COOKIE_SECURE=true` (recommended for HTTPS production)
 - `GOOGLE_DRIVE_FOLDER_ID=<your-folder-id>`
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL=<service-account-email>`
 - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=<private-key-with-\n-escapes>`
+
+Important: `DATA_DIR` must point to persistent storage on your hosting provider. If you leave it unset, the server uses `server/data`, which may be ephemeral on some platforms.
 
 ## 3) Set Production Backend URL
 

@@ -1,17 +1,15 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Router } from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
+import { getDataDir } from '../config/paths.js';
 import { getDb } from '../db/index.js';
 import { processDriveBackupQueue } from '../services/driveBackup.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../../data');
+const DATA_DIR = getDataDir();
 const PREVIEWS_DIR = path.join(DATA_DIR, 'previews');
 
 function parseJson<T>(value: string): T | null {
