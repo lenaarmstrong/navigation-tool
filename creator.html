@@ -16,10 +16,14 @@
 </head>
 <body>
 
+    <nav class="top-nav" aria-label="Page navigation">
+        <a href="viewer.html" id="nav-viewer-link">Viewer</a>
+        <a href="creator.html" class="active" id="nav-creator-link">Creator</a>
+    </nav>
+
 <div class="app-wrapper">
     <div class="top-bar">
         <h1 id="header-text">Tell Your Navigation Stories on the Map</h1>
-        <span id="active-user-badge" class="active-user-badge" hidden></span>
         <button class="lang-btn" id="lang-btn" aria-label="Switch language">EN</button>
     </div>
     
@@ -147,9 +151,7 @@
                         <img id="map-snapshot-preview" class="map-snapshot-preview" alt="">
                     </div>
                     <div class="map-snapshot-actions">
-                        <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Preview</button>
-                        <button type="button" id="map-snapshot-download-png-btn" class="map-snapshot-action-btn">.PNG</button>
-                        <button type="button" id="map-snapshot-download-json-btn" class="map-snapshot-action-btn">.JSON</button>
+                        <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Save as PNG</button>
                         <button type="button" id="map-snapshot-delete-btn" class="map-snapshot-action-btn map-snapshot-delete-btn">Delete</button>
                     </div>
                 </div>
@@ -169,15 +171,6 @@
         </div>
     </div>
 </div>
-</div>
-
-<div id="creator-login-overlay" class="creator-login-overlay">
-    <form id="creator-login-form" class="creator-login-form">
-        <h2 id="creator-login-title">Enter your name</h2>
-        <input id="creator-login-name" type="text" maxlength="80" autocomplete="name" placeholder="Your name" required>
-        <button type="submit" id="creator-login-submit">Continue</button>
-        <p id="creator-login-error" class="creator-login-error" hidden></p>
-    </form>
 </div>
 
 <script>
@@ -225,9 +218,7 @@
             clearAnnotations: 'Clear',
             circleHint: 'Turn on placement, then click the map to add a circle.',
             circleHintActive: 'Click the map to place a circle. Turn off when done.',
-            mapSnapshotSavePng: 'Preview',
-            mapSnapshotDownloadPng: '.PNG',
-            mapSnapshotDownloadJson: '.JSON',
+            mapSnapshotSavePng: 'Save as PNG',
             mapSnapshotDelete: 'Delete',
             mapSnapshotPreviewAlt: 'Map snapshot preview',
             drawLineLabel: 'Line:',
@@ -236,13 +227,7 @@
             drawCircleLabel: 'Circle:',
             drawTextLabel: 'Text:',
             circleResizeLabel: 'Circle radius',
-            legendTitle: 'Legend',
-            loginTitle: 'Enter your name',
-            loginPlaceholder: 'Your name',
-            loginContinue: 'Continue',
-            loginError: 'Please enter a valid name.',
-            loginBadgePrefix: 'User: ',
-            mapSavedByPrefix: 'By: '
+            legendTitle: 'Legend'
         },
         pt: {
             header: 'Compartilhe suas histórias de navegação no mapa',
@@ -285,9 +270,7 @@
             clearAnnotations: 'Limpar',
             circleHint: 'Ative a colocação e clique no mapa para adicionar um círculo.',
             circleHintActive: 'Clique no mapa para colocar um círculo. Desative ao terminar.',
-            mapSnapshotSavePng: 'Visualização',
-            mapSnapshotDownloadPng: '.PNG',
-            mapSnapshotDownloadJson: '.JSON',
+            mapSnapshotSavePng: 'Salvar como PNG',
             mapSnapshotDelete: 'Excluir',
             mapSnapshotPreviewAlt: 'Pré-visualização da captura do mapa',
             drawLineLabel: 'Linha:',
@@ -296,31 +279,11 @@
             drawCircleLabel: 'Círculo:',
             drawTextLabel: 'Texto:',
             circleResizeLabel: 'Raio do círculo',
-            legendTitle: 'Legenda',
-            loginTitle: 'Digite seu nome',
-            loginPlaceholder: 'Seu nome',
-            loginContinue: 'Continuar',
-            loginError: 'Digite um nome válido.',
-            loginBadgePrefix: 'Usuário: ',
-            mapSavedByPrefix: 'Por: '
+            legendTitle: 'Legenda'
         }
     };
 
     let currentLang = localStorage.getItem('coDesignLang') === 'pt' ? 'pt' : 'en';
-    const USER_NAME_KEY = 'coDesignUserName';
-    const API_BASE = (() => {
-        const explicit = (typeof window !== 'undefined' && window.__API_BASE__) ? String(window.__API_BASE__).trim() : '';
-        if (explicit) return explicit.replace(/\/+$/, '');
-        const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
-        // Local development default.
-        if (!host || host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8787';
-        // Production default (set your deployed backend URL here).
-        return 'https://YOUR_BACKEND_DOMAIN';
-    })();
-    let currentUser = null;
-    let creatorPreviewGallery = [];
-    let mapSnapshotDataUrl = null;
-    let selectedPreviewGalleryId = null;
 
     function applyLanguage(lang) {
         const t = translations[lang];
@@ -341,17 +304,13 @@
             const input = document.getElementById('label-' + i);
             if (input) input.placeholder = t['labelPlaceholder' + i];
         });
-        const navCreatorLink = document.getElementById('nav-creator-link');
-        const navViewerLink = document.getElementById('nav-viewer-link');
-        if (navCreatorLink) navCreatorLink.textContent = t.navCreator;
-        if (navViewerLink) navViewerLink.textContent = t.navViewer;
+        document.getElementById('nav-creator-link').textContent = t.navCreator;
+        document.getElementById('nav-viewer-link').textContent = t.navViewer;
         document.getElementById('undo-annotation-btn').textContent = t.undo;
         document.getElementById('redo-annotation-btn').textContent = t.redo;
         document.getElementById('clear-annotations-btn').textContent = t.clearAnnotations;
         document.getElementById('save-shapes-png').textContent = t.saveShapesPng;
         document.getElementById('map-snapshot-save-png-btn').textContent = t.mapSnapshotSavePng;
-        document.getElementById('map-snapshot-download-png-btn').textContent = t.mapSnapshotDownloadPng;
-        document.getElementById('map-snapshot-download-json-btn').textContent = t.mapSnapshotDownloadJson;
         document.getElementById('map-snapshot-delete-btn').textContent = t.mapSnapshotDelete;
         const drawLineLabel = document.getElementById('draw-tool-line-label');
         const drawRegionLabel = document.getElementById('draw-tool-region-label');
@@ -369,12 +328,6 @@
         if (legendTitle) legendTitle.textContent = t.legendTitle;
         const snapPreview = document.getElementById('map-snapshot-preview');
         if (snapPreview) snapPreview.alt = t.mapSnapshotPreviewAlt;
-        const loginTitle = document.getElementById('creator-login-title');
-        const loginName = document.getElementById('creator-login-name');
-        const loginSubmit = document.getElementById('creator-login-submit');
-        if (loginTitle) loginTitle.textContent = t.loginTitle;
-        if (loginName) loginName.placeholder = t.loginPlaceholder;
-        if (loginSubmit) loginSubmit.textContent = t.loginContinue;
         updateCircleHintText();
     }
 
@@ -396,91 +349,11 @@
         currentLang = currentLang === 'en' ? 'pt' : 'en';
         localStorage.setItem('coDesignLang', currentLang);
         applyLanguage(currentLang);
-        renderCurrentUserBadge();
         document.getElementById('lang-btn').textContent = currentLang === 'en' ? 'EN' : 'PT';
     };
 
     applyLanguage(currentLang);
     document.getElementById('lang-btn').textContent = currentLang === 'en' ? 'EN' : 'PT';
-
-    const loginOverlay = document.getElementById('creator-login-overlay');
-    const loginForm = document.getElementById('creator-login-form');
-    const loginNameInput = document.getElementById('creator-login-name');
-    const loginError = document.getElementById('creator-login-error');
-    const activeUserBadge = document.getElementById('active-user-badge');
-
-    function showLoginOverlay(message) {
-        if (loginOverlay) loginOverlay.removeAttribute('hidden');
-        if (loginError) {
-            if (message) {
-                loginError.textContent = message;
-                loginError.removeAttribute('hidden');
-            } else {
-                loginError.setAttribute('hidden', '');
-            }
-        }
-    }
-
-    function hideLoginOverlay() {
-        if (loginOverlay) loginOverlay.setAttribute('hidden', '');
-        if (loginError) loginError.setAttribute('hidden', '');
-    }
-
-    function renderCurrentUserBadge() {
-        if (!activeUserBadge) return;
-        if (!currentUser) {
-            activeUserBadge.setAttribute('hidden', '');
-            activeUserBadge.textContent = '';
-            return;
-        }
-        activeUserBadge.removeAttribute('hidden');
-        activeUserBadge.textContent = `${translations[currentLang].loginBadgePrefix}${currentUser}`;
-    }
-
-    async function createUserProfileForName(name) {
-        const result = await apiRequest('/api/session/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
-        });
-        return result && result.userName ? result.userName : name;
-    }
-
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const enteredName = (loginNameInput && loginNameInput.value ? loginNameInput.value : '').trim();
-            if (!enteredName) {
-                showLoginOverlay(translations[currentLang].loginError);
-                return;
-            }
-            const submitBtn = document.getElementById('creator-login-submit');
-            if (submitBtn) submitBtn.disabled = true;
-            try {
-                const profileName = await createUserProfileForName(enteredName);
-                currentUser = profileName;
-                localStorage.setItem(USER_NAME_KEY, profileName);
-                hideLoginOverlay();
-                renderCurrentUserBadge();
-                await initCreatorPreviewGalleryFromStorage();
-            } catch (err) {
-                const message = err && err.message ? err.message : translations[currentLang].loginError;
-                showLoginOverlay(message);
-            } finally {
-                if (submitBtn) submitBtn.disabled = false;
-            }
-        });
-    }
-    const savedUserName = (localStorage.getItem(USER_NAME_KEY) || '').trim();
-    if (savedUserName) {
-        currentUser = savedUserName;
-        if (loginNameInput) loginNameInput.value = savedUserName;
-        hideLoginOverlay();
-        renderCurrentUserBadge();
-        initCreatorPreviewGalleryFromStorage().catch(console.error);
-    } else {
-        showLoginOverlay();
-    }
 
     const map = new mapboxgl.Map({
         container: 'map',
@@ -861,25 +734,11 @@
     }
 
     function getAnnotationSnapshot() {
-        const legendLabels = [];
-        for (let i = 0; i <= 7; i++) {
-            const input = document.getElementById('label-' + i);
-            legendLabels.push({
-                colorIndex: i,
-                color: ANNOTATION_COLORS[i] || '#95a5a6',
-                label: (input && typeof input.value === 'string') ? input.value.trim() : ''
-            });
-        }
         return JSON.parse(JSON.stringify({
             draw: draw.getAll(),
             circles: userCirclesData,
             text: mapTextData,
-            nextTextId: nextMapTextId,
-            legend: {
-                title: (document.getElementById('annotations-label-legend-title')?.textContent || '').trim(),
-                items: legendLabels
-            },
-            userDisplayName: currentUser || ''
+            nextTextId: nextMapTextId
         }));
     }
 
@@ -1307,7 +1166,6 @@
 
         const legendTitleEl = document.getElementById('annotations-label-legend-title');
         const legendTitle = ((legendTitleEl && legendTitleEl.textContent) || 'Legend').trim();
-        const userNameLabel = currentUser ? `${translations[currentLang].mapSavedByPrefix}${currentUser}` : '';
 
         const mapImage = await new Promise((resolve) => {
             const img = new Image();
@@ -1323,10 +1181,9 @@
         const swatchSize = 16;
         const rowGap = 10;
         const titleGap = 14;
-        const userGap = userNameLabel ? 16 : 0;
         const legendWidth = 280;
         const titleHeight = 24;
-        const legendHeight = pad + titleHeight + userGap + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
+        const legendHeight = pad + titleHeight + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
         const outW = mapW + legendWidth + pad * 2;
         const outH = Math.max(mapH + pad * 2, legendHeight);
 
@@ -1345,12 +1202,6 @@
         ctx.fillStyle = '#222222';
         ctx.font = '700 20px Lato, Arial, sans-serif';
         ctx.fillText(legendTitle, legendX, y);
-        if (userNameLabel) {
-            y += 20;
-            ctx.fillStyle = '#555555';
-            ctx.font = '600 14px Lato, Arial, sans-serif';
-            ctx.fillText(userNameLabel, legendX, y);
-        }
         y += titleGap;
 
         ctx.font = '15px Lato, Arial, sans-serif';
@@ -1394,85 +1245,50 @@
         return out.toDataURL('image/jpeg', 0.82);
     }
 
-    async function apiRequest(path, options) {
-        const res = await fetch(`${API_BASE}${path}`, {
-            credentials: 'include',
-            ...options
-        });
-        if (!res.ok) {
-            let message = `Request failed (${res.status})`;
-            try {
-                const json = await res.json();
-                if (json && json.error) message = json.error;
-            } catch (e) {
-                // no-op fallback
-            }
-            throw new Error(message);
-        }
-        return res.json();
-    }
+    let mapSnapshotDataUrl = null;
+    let selectedPreviewGalleryId = null;
 
-    function toAbsoluteApiUrl(url) {
-        if (!url || typeof url !== 'string') return url;
-        if (/^https?:\/\//i.test(url)) return url;
-        if (url.startsWith('/')) return `${API_BASE}${url}`;
-        return url;
-    }
-
-    function normalizePreviewEntry(entry) {
-        if (!entry || typeof entry !== 'object') return entry;
-        return {
-            ...entry,
-            dataUrl: toAbsoluteApiUrl(entry.dataUrl),
-            previewPngUrl: toAbsoluteApiUrl(entry.previewPngUrl)
-        };
-    }
-
-    function normalizeUserName(value) {
-        return String(value || '').trim().toLowerCase();
-    }
+    const CO_DESIGN_PREVIEW_GALLERY_KEY = 'coDesignMapPreviewGallery';
 
     function loadPreviewGallery() {
-        return Array.isArray(creatorPreviewGallery) ? creatorPreviewGallery : [];
+        try {
+            const raw = localStorage.getItem(CO_DESIGN_PREVIEW_GALLERY_KEY);
+            const arr = JSON.parse(raw || '[]');
+            return Array.isArray(arr) ? arr : [];
+        } catch (e) {
+            return [];
+        }
     }
 
-    async function refreshPreviewGalleryFromApi() {
-        if (!currentUser) {
-            creatorPreviewGallery = [];
-            selectedPreviewGalleryId = null;
-            return creatorPreviewGallery;
+    function savePreviewGallery(list) {
+        try {
+            localStorage.setItem(CO_DESIGN_PREVIEW_GALLERY_KEY, JSON.stringify(list));
+            return true;
+        } catch (e) {
+            return false;
         }
-        const userQuery = currentUser ? `?userName=${encodeURIComponent(currentUser)}` : '';
-        const data = await apiRequest(`/api/previews${userQuery}`);
-        creatorPreviewGallery = Array.isArray(data.previews) ? data.previews.map(normalizePreviewEntry) : [];
-        return creatorPreviewGallery;
     }
 
-    async function appendPreviewToGallery(previewPngDataUrl, thumbDataUrl, annotationsSnapshot) {
-        const title = `Map Preview ${new Date().toLocaleString()}`;
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('userName', currentUser || '');
-        formData.append('annotationsJson', JSON.stringify(annotationsSnapshot));
-        const previewBlob = await (await fetch(previewPngDataUrl)).blob();
-        formData.append('previewPng', previewBlob, 'preview.png');
-        if (thumbDataUrl) {
-            const thumbBlob = await (await fetch(thumbDataUrl)).blob();
-            formData.append('thumbnailPng', thumbBlob, 'preview-thumb.jpg');
-        }
-        const created = await apiRequest('/api/previews', {
-            method: 'POST',
-            body: formData
+    function appendPreviewToGallery(dataUrl, annotationsSnapshot) {
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+        const list = loadPreviewGallery();
+        list.push({
+            id,
+            dataUrl,
+            annotations: JSON.parse(JSON.stringify(annotationsSnapshot))
         });
-        const normalized = normalizePreviewEntry(created);
-        creatorPreviewGallery = [normalized, ...creatorPreviewGallery.filter((item) => item.id !== normalized.id)];
-        return created.id || null;
+        if (savePreviewGallery(list)) return id;
+        // If storage is tight, drop oldest entries and keep the newest save.
+        while (list.length > 1) {
+            list.shift();
+            if (savePreviewGallery(list)) return id;
+        }
+        return null;
     }
 
-    async function removePreviewFromGalleryById(id) {
+    function removePreviewFromGalleryById(id) {
         if (!id) return;
-        await apiRequest(`/api/previews/${encodeURIComponent(id)}`, { method: 'DELETE' });
-        creatorPreviewGallery = creatorPreviewGallery.filter((item) => item.id !== id);
+        savePreviewGallery(loadPreviewGallery().filter((item) => item.id !== id));
     }
 
     function getSelectedGalleryEntry() {
@@ -1484,22 +1300,10 @@
         const img = document.getElementById('map-snapshot-preview');
         if (img && img.src) {
             const list = loadPreviewGallery();
-            const currentHref = new URL(img.src, window.location.href).href;
-            const match = list.find((item) => {
-                const candidates = [item.dataUrl, item.previewPngUrl].filter(Boolean);
-                try {
-                    return candidates.some((url) => new URL(url, window.location.href).href === currentHref);
-                } catch (e) {
-                    return candidates.some((url) => url === img.src);
-                }
-            });
+            const match = list.find((item) => item.dataUrl === img.src);
             if (match) return match;
         }
         return getSelectedGalleryEntry();
-    }
-
-    function getPreferredGalleryEntry() {
-        return getSelectedGalleryEntry() || getGalleryEntryForShownPreview() || loadPreviewGallery()[0] || null;
     }
 
     function raiseAnnotationLayersToTop() {
@@ -1524,10 +1328,9 @@
     }
 
     function restoreSelectedGalleryAnnotations() {
-        const e = getPreferredGalleryEntry();
+        const e = getGalleryEntryForShownPreview();
         if (!e || !e.annotations) return;
         if (e.id) selectedPreviewGalleryId = e.id;
-        syncWrapFromSelected();
         applyAnnotationSnapshot(JSON.parse(JSON.stringify(e.annotations)));
         pushAnnotationSnapshot();
         raiseAnnotationLayersToTop();
@@ -1560,15 +1363,10 @@
         }
     }
 
-    async function initCreatorPreviewGalleryFromStorage() {
-        await refreshPreviewGalleryFromApi();
+    function initCreatorPreviewGalleryFromStorage() {
         const list = loadPreviewGallery();
-        if (!list.length) {
-            syncWrapFromSelected();
-            renderCreatorAnnotationGallery();
-            return;
-        }
-        if (!selectedPreviewGalleryId) selectedPreviewGalleryId = list[0].id;
+        if (!list.length) return;
+        if (!selectedPreviewGalleryId) selectedPreviewGalleryId = list[list.length - 1].id;
         syncWrapFromSelected();
         renderCreatorAnnotationGallery();
     }
@@ -1589,10 +1387,6 @@
     document.getElementById('clear-annotations-btn').addEventListener('click', clearAllMapAnnotations);
 
     async function runSaveMapPreview() {
-        if (!currentUser) {
-            showLoginOverlay(translations[currentLang].loginError);
-            return;
-        }
         finalizeActiveTextDraft(true);
         syncAnnotations();
         refreshMapTextSource();
@@ -1615,13 +1409,14 @@
             const previewWrap = document.getElementById('map-snapshot-preview-wrap');
             if (previewImg) previewImg.src = galleryPreviewDataUrl;
             if (previewWrap) previewWrap.style.display = '';
+            const link = document.createElement('a');
+            link.href = pngUrl;
+            link.download = 'map-annotations-snapshot.png';
+            link.click();
             const annotationsSnapshot = getAnnotationSnapshot();
-            annotationsSnapshot.userDisplayName = currentUser;
-            annotationsSnapshot.savedAt = new Date().toISOString();
             // Keep gallery/viewer payload lightweight and map-focused for reliability.
-            selectedPreviewGalleryId = await appendPreviewToGallery(pngUrl, galleryPreviewDataUrl, annotationsSnapshot);
+            selectedPreviewGalleryId = appendPreviewToGallery(galleryPreviewDataUrl, annotationsSnapshot);
             if (selectedPreviewGalleryId) syncWrapFromSelected();
-            await refreshPreviewGalleryFromApi();
             renderCreatorAnnotationGallery();
         } finally {
             saveBtn.disabled = false;
@@ -1632,88 +1427,18 @@
         runSaveMapPreview();
     });
 
-    document.getElementById('map-snapshot-save-png-btn').addEventListener('click', async () => {
-        const entry = getPreferredGalleryEntry();
-        const previewUrl = entry && (entry.previewPngUrl || entry.dataUrl) ? (entry.previewPngUrl || entry.dataUrl) : mapSnapshotDataUrl;
-        if (!previewUrl) return;
-        window.open(previewUrl, '_blank', 'noopener,noreferrer');
-    });
-
-    document.getElementById('map-snapshot-download-png-btn').addEventListener('click', () => {
-        const entry = getGalleryEntryForShownPreview();
-        const pngUrl = entry && entry.previewPngUrl ? entry.previewPngUrl : mapSnapshotDataUrl;
-        if (!pngUrl) return;
-        const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
-        const filename = `map-annotations-${cleanUser}.png`;
-        (async () => {
-            try {
-                const res = await fetch(pngUrl, { credentials: 'include' });
-                if (!res.ok) return;
-                const blob = await res.blob();
-                if (blob.type === 'image/png') {
-                    const objectUrl = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = objectUrl;
-                    link.download = filename;
-                    link.click();
-                    URL.revokeObjectURL(objectUrl);
-                    return;
-                }
-                // If source is jpeg/webp preview, convert to PNG before download.
-                const img = await new Promise((resolve) => {
-                    const el = new Image();
-                    el.onload = () => resolve(el);
-                    el.onerror = () => resolve(null);
-                    el.src = URL.createObjectURL(blob);
-                });
-                if (!img) return;
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width || 1;
-                canvas.height = img.height || 1;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return;
-                ctx.drawImage(img, 0, 0);
-                canvas.toBlob((pngBlob) => {
-                    if (!pngBlob) return;
-                    const objectUrl = URL.createObjectURL(pngBlob);
-                    const link = document.createElement('a');
-                    link.href = objectUrl;
-                    link.download = filename;
-                    link.click();
-                    URL.revokeObjectURL(objectUrl);
-                }, 'image/png');
-            } catch (error) {
-                console.error('Failed to download PNG', error);
-            }
-        })();
-    });
-
-    document.getElementById('map-snapshot-download-json-btn').addEventListener('click', () => {
-        const entry = getGalleryEntryForShownPreview();
-        if (!entry || !entry.annotations) return;
-        const payload = {
-            id: entry.id || null,
-            title: entry.title || null,
-            userId: entry.userId || null,
-            userDisplayName: entry.userDisplayName || currentUser || null,
-            createdAt: entry.createdAt || null,
-            updatedAt: entry.updatedAt || null,
-            annotations: entry.annotations
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+    document.getElementById('map-snapshot-save-png-btn').addEventListener('click', () => {
+        if (!mapSnapshotDataUrl) return;
         const link = document.createElement('a');
-        link.href = url;
-        const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
-        link.download = `map-annotations-${cleanUser}.json`;
+        link.href = mapSnapshotDataUrl;
+        link.download = 'map-annotations-snapshot.png';
         link.click();
-        URL.revokeObjectURL(url);
     });
 
-    document.getElementById('map-snapshot-delete-btn').addEventListener('click', async () => {
-        await removePreviewFromGalleryById(selectedPreviewGalleryId);
+    document.getElementById('map-snapshot-delete-btn').addEventListener('click', () => {
+        removePreviewFromGalleryById(selectedPreviewGalleryId);
         const list = loadPreviewGallery();
-        selectedPreviewGalleryId = list.length ? list[0].id : null;
+        selectedPreviewGalleryId = list.length ? list[list.length - 1].id : null;
         syncWrapFromSelected();
         renderCreatorAnnotationGallery();
     });
@@ -1722,10 +1447,10 @@
         restoreSelectedGalleryAnnotations();
     });
 
-    if (!map.loaded()) {
-        map.once('load', () => {
-            initCreatorPreviewGalleryFromStorage().catch(console.error);
-        });
+    if (map.loaded()) {
+        initCreatorPreviewGalleryFromStorage();
+    } else {
+        map.once('load', initCreatorPreviewGalleryFromStorage);
     }
 
     // ----- Address search suggestions for start & destination (Mapbox Geocoding) -----
