@@ -240,10 +240,7 @@
                 emptyGallery: 'No saved previews yet. Use Save on the Creator page to add previews here.',
                 hint: 'Click saved annotations to show them on the map, save them, or delete them.',
                 tileAriaLabel: 'Map preview',
-                loginNeeded: 'Open Creator and enter your name to view your saved previews.',
-                backupDone: 'Drive backup complete',
-                backupPending: 'Drive backup pending',
-                backupFailed: 'Drive backup failed'
+                loginNeeded: 'Open Creator and enter your name to view your saved previews.'
             },
             pt: {
                 pageTitle: 'Visualizador',
@@ -263,10 +260,7 @@
                 emptyGallery: 'Nenhuma captura salva ainda. Use Salvar no Criador para adicionar pré-visualizações aqui.',
                 hint: 'Clique nas anotações salvas para mostrar no mapa, salvar, ou exluir.',
                 tileAriaLabel: 'Pré-visualização do mapa',
-                loginNeeded: 'Abra o Criador e informe seu nome para ver seus mapas salvos.',
-                backupDone: 'Backup no Drive concluído',
-                backupPending: 'Backup no Drive pendente',
-                backupFailed: 'Backup no Drive falhou'
+                loginNeeded: 'Abra o Criador e informe seu nome para ver seus mapas salvos.'
             }
         };
 
@@ -314,6 +308,7 @@
             // Production default (set your deployed backend URL here).
             return 'https://YOUR_BACKEND_DOMAIN';
         })();
+        const USER_NAME_KEY = 'coDesignUserName';
         const ANNOTATION_COLORS = ['#43159e', '#335145', '#F7B32B', '#3066BE', '#8CBA80', '#88CCF1', '#a64b00'];
 
         let viewerSelectedPreviewIds = new Set();
@@ -362,16 +357,11 @@
         }
 
         async function refreshViewerGallery() {
-            const payload = await apiRequest('/api/previews');
+            const currentUserName = (localStorage.getItem(USER_NAME_KEY) || '').trim();
+            const userQuery = currentUserName ? `?userName=${encodeURIComponent(currentUserName)}` : '';
+            const payload = await apiRequest(`/api/previews${userQuery}`);
             viewerPreviewGallery = Array.isArray(payload.previews) ? payload.previews.map(normalizePreviewEntry) : [];
             return viewerPreviewGallery;
-        }
-
-        function getDriveStatusLabel(status) {
-            const t = viewerTranslations[viewerLang];
-            if (status === 'done') return t.backupDone;
-            if (status === 'failed') return t.backupFailed;
-            return t.backupPending;
         }
 
         function getViewerSelectedEntries() {
@@ -647,20 +637,6 @@
                     img.src = entry.dataUrl;
                     img.alt = '';
                     tile.appendChild(img);
-                    const driveStatus = document.createElement('span');
-                    driveStatus.style.position = 'absolute';
-                    driveStatus.style.top = '4px';
-                    driveStatus.style.right = '4px';
-                    driveStatus.style.background = 'rgba(255,255,255,0.9)';
-                    driveStatus.style.borderRadius = '10px';
-                    driveStatus.style.padding = '1px 6px';
-                    driveStatus.style.fontSize = '10px';
-                    driveStatus.style.fontWeight = '700';
-                    driveStatus.style.color = entry.driveBackupStatus === 'done' ? '#2e7d32' : (entry.driveBackupStatus === 'failed' ? '#c62828' : '#6a5acd');
-                    driveStatus.textContent = entry.driveBackupStatus === 'done' ? 'OK' : (entry.driveBackupStatus === 'failed' ? 'ERR' : '...');
-                    driveStatus.title = getDriveStatusLabel(entry.driveBackupStatus);
-                    tile.style.position = 'relative';
-                    tile.appendChild(driveStatus);
                     function toggleSelection() {
                         if (viewerSelectedPreviewIds.has(entry.id)) viewerSelectedPreviewIds.delete(entry.id);
                         else viewerSelectedPreviewIds.add(entry.id);
