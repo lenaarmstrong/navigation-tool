@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Navigation Technology Co-Design Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css">
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+</head>
+<body>
+
+<div class="app-wrapper">
+    <div class="top-bar">
+        <h1 id="header-text">Tell Your Navigation Stories on the Map</h1>
+        <span id="active-user-badge" class="active-user-badge" hidden></span>
+        <button class="lang-btn" id="lang-btn" aria-label="Switch language">EN</button>
+    </div>
+    
+<div class="layout">
+    <div style="display:flex;flex-direction:column;gap:12px;flex:0 0 320px;width:320px;flex-shrink:0;padding-right:36px;">
+    <div class="panel">
+        <div id="panel-route-annotations">
+        <h4 id="visualize-route-heading" style="margin-top: 4px; padding-top: 12px;">Visualize A Route</h4>
+        <div class="profile-buttons">
+            <button type="button" class="profile-btn active" data-profile="driving">Driving</button>
+            <button type="button" class="profile-btn" data-profile="walking">Walking</button>
+            <button type="button" class="profile-btn" data-profile="cycling">Cycling</button>
+        </div>
+        <div class="address-wrap">
+            <input type="text" id="start" placeholder="Starting Address" autocomplete="off">
+            <div class="search-results" id="start-results"></div>
+        </div>
+        <div class="address-wrap">
+            <input type="text" id="end" placeholder="Destination Address" autocomplete="off">
+            <div class="search-results" id="end-results"></div>
+        </div>
+        <button id="calc-route" style="margin-top: 10px;">Visualize Route</button>
+        </div>
+        </div>
+
+        <div class="panel">
+        <div class="annotations-section">
+            <h4 id="annotations-heading">Add Annotations</h4>
+
+            <div class="draw-tools-panel" aria-label="Drawing tools" style="display:flex;flex-direction:row;gap:8px;margin-bottom:12px;align-items:flex-start;justify-content:space-between;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-line-label">Line</span>
+                    <button type="button" class="draw-tool-btn active" data-draw-mode="draw_line_string" aria-label="Draw line">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18L10 12L14 14L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </button>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-region-label">Region</span>
+                    <button type="button" class="draw-tool-btn" data-draw-mode="draw_polygon" aria-label="Draw polygon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6L15 4L20 12L14 20L6 16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
+                    </button>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-circle-label">Circle</span>
+                    <button type="button" id="circle-mode-btn" class="draw-tool-btn" aria-label="Draw circle">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"></circle></svg>
+                    </button>
+                    <div id="circle-resize-controls" style="display:none;flex-direction:column;align-items:stretch;gap:4px;width:100%;margin-top:2px;">
+                        <label for="circle-resize-range" id="circle-resize-label" style="font-size:11px;color:#666;text-align:center;">Circle radius</label>
+                        <input type="range" id="circle-resize-range" min="50" max="3000" step="50" value="250" style="width:100%;">
+                        <span id="circle-resize-value" style="font-size:11px;color:#666;text-align:center;">250 m</span>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-point-label">Point</span>
+                    <button type="button" class="draw-tool-btn" data-draw-mode="draw_point" aria-label="Draw point">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"></circle></svg>
+                    </button>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;">
+                    <span id="draw-tool-text-label">Text</span>
+                    <button type="button" id="text-mode-btn" class="draw-tool-btn" aria-label="Add text">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8.9 9.2H15.1M12 9.2V15.8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="annotation-row" style="margin-top: 10px;">
+                <button type="button" class="color-swatch selected" data-color-index="0" style="background: #43159e;" aria-label="Color 1"></button>
+                <input type="text" class="label-input" id="label-0" placeholder="e.g. Residents">
+            </div>
+            <div class="annotation-row">
+                <button type="button" class="color-swatch" data-color-index="1" style="background: #3066BE;" aria-label="Color 2"></button>
+                <input type="text" class="label-input" id="label-1" placeholder="e.g. Taxi drivers">
+            </div>
+            <div class="annotation-row">
+                <button type="button" class="color-swatch" data-color-index="2" style="background: #335145;" aria-label="Color 3"></button>
+                <input type="text" class="label-input" id="label-2" placeholder="e.g. Delivery workers">
+            </div>
+            <div class="annotation-row">
+                <button type="button" class="color-swatch" data-color-index="3" style="background: #a64b00;" aria-label="Color 4"></button>
+                <input type="text" class="label-input" id="label-3" placeholder="e.g. Tourists">
+            </div>
+            <div class="annotation-row">
+                <button type="button" class="color-swatch" data-color-index="4" style="background: #F7B32B;" aria-label="Color 5"></button>
+                <input type="text" class="label-input" id="label-4" placeholder="e.g. Bus drivers">
+            </div>
+            <div class="annotation-row">
+                <button type="button" class="color-swatch" data-color-index="5" style="background: #ff4d6d ;" aria-label="Color 6"></button>
+                <input type="text" class="label-input" id="label-5" placeholder="e.g. Pedestrians">
+            </div>
+            <div class="annotation-row">
+                <button type="button" class="color-swatch" data-color-index="6" style="background: #88CCF1;" aria-label="Color 7"></button>
+                <input type="text" class="label-input" id="label-6" placeholder="e.g. new category">
+            </div>
+            <div class="annotation-row style="margin-bottom: 10px;"">
+                <button type="button" class="color-swatch" data-color-index="7" style="background: #8CBA80;" aria-label="Color 8"></button>
+                <input type="text" class="label-input" id="label-7" placeholder="e.g. new category">
+            </div>
+
+        </div>
+        <!-- <p id="hint-text" style="font-size: 12px; color: #666;">Use the top-right toolbar to draw annotations.</p> -->
+        <div style="border-top: 1px solid #eee; padding-top: 12px;">
+            <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch;">
+                <button type="button" id="undo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Undo</button>
+                <button type="button" id="redo-annotation-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Redo</button>
+                <button type="button" id="save-shapes-png" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Save</button>
+                <button type="button" id="clear-annotations-btn" class="circle-secondary-btn" style="flex: 1 1 0; min-width: 0; margin-bottom: 0; min-height: 40px; box-sizing: border-box;">Clear</button>
+            </div>
+        </div>
+        </div>
+
+    </div>
+
+    <div class="map-container">
+        <div class="map-inner">
+            <div id="map"></div>
+        </div>
+        <div class="map-preview-legend-row">
+            <div class="map-snapshot-section" id="map-snapshot-section">
+                <div id="map-snapshot-preview-wrap" class="map-snapshot-preview-wrap" style="display: none;">
+                    <div class="map-snapshot-preview-square" id="map-snapshot-preview-square">
+                        <img id="map-snapshot-preview" class="map-snapshot-preview" alt="">
+                    </div>
+                    <div class="map-snapshot-actions">
+                        <button type="button" id="map-snapshot-save-png-btn" class="map-snapshot-action-btn">Preview</button>
+                        <button type="button" id="map-snapshot-download-png-btn" class="map-snapshot-action-btn">.PNG</button>
+                        <button type="button" id="map-snapshot-download-json-btn" class="map-snapshot-action-btn">.JSON</button>
+                        <button type="button" id="map-snapshot-delete-btn" class="map-snapshot-action-btn map-snapshot-delete-btn">Delete</button>
+                    </div>
+                </div>
+                <div id="creator-saved-annotations-gallery" class="creator-saved-annotations-gallery" aria-label="All saved map previews"></div>
+            </div>
+            <div id="annotations-label-legend" aria-live="polite">
+                <div id="annotations-label-legend-title">Legend</div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-0-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-0-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-1-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-1-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-2-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-2-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-3-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-3-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-4-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-4-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-5-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-5-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-6-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-6-text"></span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span id="label-legend-7-swatch" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;" aria-hidden="true"></span><span id="label-legend-7-text"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<div id="creator-login-overlay" class="creator-login-overlay">
+    <form id="creator-login-form" class="creator-login-form">
+        <h2 id="creator-login-title">Enter your name</h2>
+        <input id="creator-login-name" type="text" maxlength="80" autocomplete="name" placeholder="Your name" required>
+        <button type="submit" id="creator-login-submit">Continue</button>
+        <p id="creator-login-error" class="creator-login-error" hidden></p>
+    </form>
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibGVuYWFybXMiLCJhIjoiY205N3V0aGw2MGJnMDJsb2tiNDB1czFzaiJ9.bTzeSaHAUueU3tJHFNXyAA';
+
+    const translations = {
+        en: {
+            header: 'Tell Your Navigation Stories on the Map',
+            startPlaceholder: 'Starting Address',
+            endPlaceholder: 'Destination Address',
+            driving: 'Driving',
+            walking: 'Walking',
+            cycling: 'Cycling',
+            visualizeRouteHeading: 'Visualize A Route',
+            visualizeRoute: 'Visualize Route',
+            routesTab: 'Routes',
+            regionsTab: 'Regions',
+            hint: 'Use the top-right toolbar to draw annotations.',
+            errStart: 'Could not find the starting address. Please check it and try again.',
+            errEnd: 'Could not find the destination address. Please check it and try again.',
+            errNoRoute: 'No route found between these two addresses. Try a different travel mode or addresses.',
+            annotationsHeading: 'Add Annotations',
+            routeHint: 'Search, select a result in each box (click or Enter), then click Visualize Route.',
+            labelPlaceholder0: 'e.g. Residents',
+            labelPlaceholder1: 'e.g. Taxi or Uber driver',
+            labelPlaceholder2: 'e.g. Unfamiliar',
+            labelPlaceholder3: 'e.g. Safe',
+            labelPlaceholder4: 'e.g. Technology works',
+            labelPlaceholder5: 'e.g. Technology issue',
+            labelPlaceholder6: 'e.g. New category',
+            labelPlaceholder7: 'e.g. New category',
+            circleToolHeading: 'Draw Bubbles of Safety',
+            circleRadiusLabel: 'Radius (meters)',
+            circleColorLabel: 'Color',
+            placeCircle: 'Place circle on map',
+            cancelPlace: 'Cancel placement',
+            useAnnotationColor: 'Use annotation color',
+            addText: 'Add Text',
+            mapTextPlaceholder: 'Text to place on map',
+            saveShapesPng: 'Save',
+            navCreator: 'Creator',
+            navViewer: 'Viewer',
+            undo: 'Undo',
+            redo: 'Redo',
+            clearAnnotations: 'Clear',
+            circleHint: 'Turn on placement, then click the map to add a circle.',
+            circleHintActive: 'Click the map to place a circle. Turn off when done.',
+            mapSnapshotSavePng: 'Preview',
+            mapSnapshotDownloadPng: '.PNG',
+            mapSnapshotDownloadJson: '.JSON',
+            mapSnapshotDelete: 'Delete',
+            mapSnapshotPreviewAlt: 'Map snapshot preview',
+            drawLineLabel: 'Line:',
+            drawRegionLabel: 'Region:',
+            drawPointLabel: 'Point:',
+            drawCircleLabel: 'Circle:',
+            drawTextLabel: 'Text:',
+            circleResizeLabel: 'Circle radius',
+            legendTitle: 'Legend',
+            loginTitle: 'Enter your name',
+            loginPlaceholder: 'Your name',
+            loginContinue: 'Continue',
+            loginError: 'Please enter a valid name.',
+            loginBadgePrefix: 'User: ',
+            mapSavedByPrefix: 'By: '
+        },
+        pt: {
+            header: 'Compartilhe suas histórias de navegação no mapa',
+            startPlaceholder: 'Endereço de partida',
+            endPlaceholder: 'Endereço de destino',
+            driving: 'Dirigir',
+            walking: 'Caminhar',
+            cycling: 'Andar de bicicleta',
+            visualizeRouteHeading: 'Visualize uma rota',
+            visualizeRoute: 'Visualizar Rota',
+            routesTab: 'Rotas',
+            regionsTab: 'Regiões',
+            hint: 'Use a barra de ferramentas no canto superior direito para desenhar anotações.',
+            errStart: 'Não foi possível encontrar o endereço de partida. Verifique e tente novamente.',
+            errEnd: 'Não foi possível encontrar o endereço de destino. Verifique e tente novamente.',
+            errNoRoute: 'Nenhuma rota encontrada entre esses endereços. Tente outro modo de viagem ou endereços.',
+            annotationsHeading: 'Adicionar anotações',
+            routeHint: 'Pesquise, selecione um resultado em cada caixa (clique ou Enter), depois clique em Visualizar Rota.',
+            labelPlaceholder0: 'ex. Residentes',
+            labelPlaceholder1: 'ex. Táxi ou Uber',
+            labelPlaceholder2: 'ex. Desconhecido',
+            labelPlaceholder3: 'ex. Seguro',
+            labelPlaceholder4: 'ex. Tecnologia funciona',
+            labelPlaceholder5: 'ex. Problema na tecnologia',
+            labelPlaceholder6: 'ex. Nova categoria',
+            labelPlaceholder7: 'ex. Nova categoria',
+            circleToolHeading: 'Círculos no mapa',
+            circleRadiusLabel: 'Raio (metros)',
+            circleColorLabel: 'Cor',
+            placeCircle: 'Colocar círculo no mapa',
+            cancelPlace: 'Cancelar colocação',
+            useAnnotationColor: 'Usar cor da anotação',
+            addText: 'Adicionar Texto',
+            mapTextPlaceholder: 'Texto para colocar no mapa',
+            saveShapesPng: 'Salvar',
+            navCreator: 'Criador',
+            navViewer: 'Visualizador',
+            undo: 'Desfazer',
+            redo: 'Refazer',
+            clearAnnotations: 'Limpar',
+            circleHint: 'Ative a colocação e clique no mapa para adicionar um círculo.',
+            circleHintActive: 'Clique no mapa para colocar um círculo. Desative ao terminar.',
+            mapSnapshotSavePng: 'Visualização',
+            mapSnapshotDownloadPng: '.PNG',
+            mapSnapshotDownloadJson: '.JSON',
+            mapSnapshotDelete: 'Excluir',
+            mapSnapshotPreviewAlt: 'Pré-visualização da captura do mapa',
+            drawLineLabel: 'Linha:',
+            drawRegionLabel: 'Região:',
+            drawPointLabel: 'Ponto:',
+            drawCircleLabel: 'Círculo:',
+            drawTextLabel: 'Texto:',
+            circleResizeLabel: 'Raio do círculo',
+            legendTitle: 'Legenda',
+            loginTitle: 'Digite seu nome',
+            loginPlaceholder: 'Seu nome',
+            loginContinue: 'Continuar',
+            loginError: 'Digite um nome válido.',
+            loginBadgePrefix: 'Usuário: ',
+            mapSavedByPrefix: 'Por: '
+        }
+    };
+
+    let currentLang = localStorage.getItem('coDesignLang') === 'pt' ? 'pt' : 'en';
+    const USER_NAME_KEY = 'coDesignUserName';
+    const API_BASE = (() => {
+        const explicit = (typeof window !== 'undefined' && window.__API_BASE__) ? String(window.__API_BASE__).trim() : '';
+        if (explicit) return explicit.replace(/\/+$/, '');
+        const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+        // Local development default.
+        if (!host || host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8787';
+        // Production default (set your deployed backend URL here).
+        return 'https://YOUR_BACKEND_DOMAIN';
+    })();
+    let currentUser = null;
+    let creatorPreviewGallery = [];
+    let mapSnapshotDataUrl = null;
+    let selectedPreviewGalleryId = null;
+
+    function applyLanguage(lang) {
+        const t = translations[lang];
+        document.getElementById('header-text').textContent = t.header;
+        var startInput = document.getElementById('start');
+        var endInput = document.getElementById('end');
+        if (startInput) startInput.placeholder = t.startPlaceholder;
+        if (endInput) endInput.placeholder = t.endPlaceholder;
+        document.querySelector('.profile-btn[data-profile="driving"]').textContent = t.driving;
+        document.querySelector('.profile-btn[data-profile="walking"]').textContent = t.walking;
+        document.querySelector('.profile-btn[data-profile="cycling"]').textContent = t.cycling;
+        document.getElementById('visualize-route-heading').textContent = t.visualizeRouteHeading;
+        document.getElementById('calc-route').textContent = t.visualizeRoute;
+        const hintText = document.getElementById('hint-text');
+        if (hintText) hintText.textContent = t.hint;
+        document.getElementById('annotations-heading').textContent = t.annotationsHeading;
+        [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
+            const input = document.getElementById('label-' + i);
+            if (input) input.placeholder = t['labelPlaceholder' + i];
+        });
+        const navCreatorLink = document.getElementById('nav-creator-link');
+        const navViewerLink = document.getElementById('nav-viewer-link');
+        if (navCreatorLink) navCreatorLink.textContent = t.navCreator;
+        if (navViewerLink) navViewerLink.textContent = t.navViewer;
+        document.getElementById('undo-annotation-btn').textContent = t.undo;
+        document.getElementById('redo-annotation-btn').textContent = t.redo;
+        document.getElementById('clear-annotations-btn').textContent = t.clearAnnotations;
+        document.getElementById('save-shapes-png').textContent = t.saveShapesPng;
+        document.getElementById('map-snapshot-save-png-btn').textContent = t.mapSnapshotSavePng;
+        document.getElementById('map-snapshot-download-png-btn').textContent = t.mapSnapshotDownloadPng;
+        document.getElementById('map-snapshot-download-json-btn').textContent = t.mapSnapshotDownloadJson;
+        document.getElementById('map-snapshot-delete-btn').textContent = t.mapSnapshotDelete;
+        const drawLineLabel = document.getElementById('draw-tool-line-label');
+        const drawRegionLabel = document.getElementById('draw-tool-region-label');
+        const drawPointLabel = document.getElementById('draw-tool-point-label');
+        const drawCircleLabel = document.getElementById('draw-tool-circle-label');
+        const drawTextLabel = document.getElementById('draw-tool-text-label');
+        if (drawLineLabel) drawLineLabel.textContent = t.drawLineLabel;
+        if (drawRegionLabel) drawRegionLabel.textContent = t.drawRegionLabel;
+        if (drawPointLabel) drawPointLabel.textContent = t.drawPointLabel;
+        if (drawCircleLabel) drawCircleLabel.textContent = t.drawCircleLabel;
+        if (drawTextLabel) drawTextLabel.textContent = t.drawTextLabel;
+        const circleResizeLabel = document.getElementById('circle-resize-label');
+        if (circleResizeLabel) circleResizeLabel.textContent = t.circleResizeLabel;
+        const legendTitle = document.getElementById('annotations-label-legend-title');
+        if (legendTitle) legendTitle.textContent = t.legendTitle;
+        const snapPreview = document.getElementById('map-snapshot-preview');
+        if (snapPreview) snapPreview.alt = t.mapSnapshotPreviewAlt;
+        const loginTitle = document.getElementById('creator-login-title');
+        const loginName = document.getElementById('creator-login-name');
+        const loginSubmit = document.getElementById('creator-login-submit');
+        if (loginTitle) loginTitle.textContent = t.loginTitle;
+        if (loginName) loginName.placeholder = t.loginPlaceholder;
+        if (loginSubmit) loginSubmit.textContent = t.loginContinue;
+        updateCircleHintText();
+    }
+
+    let circleModeActive = false;
+    let currentCircleRadiusMeters = 250;
+    let circleSwatchColor = '#3066BE';
+    const userCirclesData = { type: 'FeatureCollection', features: [] };
+    let nextCircleId = 1;
+    let selectedCircleId = null;
+
+    function updateCircleHintText() {
+        const hint = document.getElementById('circle-hint');
+        if (!hint) return;
+        const t = translations[currentLang];
+        hint.textContent = circleModeActive ? t.circleHintActive : t.circleHint;
+    }
+
+    document.getElementById('lang-btn').onclick = () => {
+        currentLang = currentLang === 'en' ? 'pt' : 'en';
+        localStorage.setItem('coDesignLang', currentLang);
+        applyLanguage(currentLang);
+        renderCurrentUserBadge();
+        document.getElementById('lang-btn').textContent = currentLang === 'en' ? 'EN' : 'PT';
+    };
+
+    applyLanguage(currentLang);
+    document.getElementById('lang-btn').textContent = currentLang === 'en' ? 'EN' : 'PT';
+
+    const loginOverlay = document.getElementById('creator-login-overlay');
+    const loginForm = document.getElementById('creator-login-form');
+    const loginNameInput = document.getElementById('creator-login-name');
+    const loginError = document.getElementById('creator-login-error');
+    const activeUserBadge = document.getElementById('active-user-badge');
+
+    function showLoginOverlay(message) {
+        if (loginOverlay) loginOverlay.removeAttribute('hidden');
+        if (loginError) {
+            if (message) {
+                loginError.textContent = message;
+                loginError.removeAttribute('hidden');
+            } else {
+                loginError.setAttribute('hidden', '');
+            }
+        }
+    }
+
+    function hideLoginOverlay() {
+        if (loginOverlay) loginOverlay.setAttribute('hidden', '');
+        if (loginError) loginError.setAttribute('hidden', '');
+    }
+
+    function renderCurrentUserBadge() {
+        if (!activeUserBadge) return;
+        if (!currentUser) {
+            activeUserBadge.setAttribute('hidden', '');
+            activeUserBadge.textContent = '';
+            return;
+        }
+        activeUserBadge.removeAttribute('hidden');
+        activeUserBadge.textContent = `${translations[currentLang].loginBadgePrefix}${currentUser}`;
+    }
+
+    async function createUserProfileForName(name) {
+        const result = await apiRequest('/api/session/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        return result && result.userName ? result.userName : name;
+    }
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const enteredName = (loginNameInput && loginNameInput.value ? loginNameInput.value : '').trim();
+            if (!enteredName) {
+                showLoginOverlay(translations[currentLang].loginError);
+                return;
+            }
+            const submitBtn = document.getElementById('creator-login-submit');
+            if (submitBtn) submitBtn.disabled = true;
+            try {
+                const profileName = await createUserProfileForName(enteredName);
+                currentUser = profileName;
+                localStorage.setItem(USER_NAME_KEY, profileName);
+                hideLoginOverlay();
+                renderCurrentUserBadge();
+                await initCreatorPreviewGalleryFromStorage();
+            } catch (err) {
+                const message = err && err.message ? err.message : translations[currentLang].loginError;
+                showLoginOverlay(message);
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+    }
+    const savedUserName = (localStorage.getItem(USER_NAME_KEY) || '').trim();
+    if (savedUserName) {
+        currentUser = savedUserName;
+        if (loginNameInput) loginNameInput.value = savedUserName;
+        hideLoginOverlay();
+        renderCurrentUserBadge();
+        initCreatorPreviewGalleryFromStorage().catch(console.error);
+    } else {
+        showLoginOverlay();
+    }
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [-43.23, -22.93], // Rio de Janeiro, Brazil
+        zoom: 11,
+        preserveDrawingBuffer: true
+    });
+
+    const ANNOTATION_COLORS = ['#43159e', '#F7B32B', '#ff4d6d', '#3066BE', '#335145', '#a64b00', '#88CCF1', '#8CBA80'];
+    let selectedColorIndex = 0;
+
+    const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: { trash: true },
+        userProperties: true
+    });
+    map.addControl(draw, 'top-right');
+
+    let routeStartMarker = null;
+    let routeEndMarker = null;
+    let textModeActive = false;
+    let activeTextDraft = null;
+    const mapTextData = { type: 'FeatureCollection', features: [] };
+    let nextMapTextId = 1;
+    let draggingTextId = null;
+    let suppressNextTextClick = false;
+    const annotationHistoryPast = [];
+    const annotationHistoryFuture = [];
+    let applyingAnnotationHistory = false;
+
+    function removeRouteMarkers() {
+        if (routeStartMarker) {
+            routeStartMarker.remove();
+            routeStartMarker = null;
+        }
+        if (routeEndMarker) {
+            routeEndMarker.remove();
+            routeEndMarker = null;
+        }
+    }
+
+    map.on('load', () => {
+        map.addSource('annotations', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+        });
+        map.addLayer({
+            id: 'annotations-fill',
+            type: 'fill',
+            source: 'annotations',
+            filter: ['==', ['geometry-type'], 'Polygon'],
+            paint: {
+                'fill-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                'fill-opacity': 0.6
+            }
+        });
+        map.addLayer({
+            id: 'annotations-line',
+            type: 'line',
+            source: 'annotations',
+            filter: ['==', ['geometry-type'], 'Polygon'],
+            paint: {
+                'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                'line-width': 2
+            }
+        });
+        map.addLayer({
+            id: 'annotations-linestring',
+            type: 'line',
+            source: 'annotations',
+            filter: ['==', ['geometry-type'], 'LineString'],
+            paint: {
+                'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                'line-width': 4
+            }
+        });
+        const addAnnotationsPointLayer = (useFallback) => {
+            if (!map.getSource('annotations') || map.getLayer('annotations-point')) return;
+            const layerDef = {
+                id: 'annotations-point',
+                type: 'symbol',
+                source: 'annotations',
+                filter: ['==', ['geometry-type'], 'Point']
+            };
+            if (useFallback) {
+                layerDef.layout = {
+                    'text-field': '📍',
+                    'text-size': 26,
+                    'text-allow-overlap': true
+                };
+                layerDef.paint = {
+                    'text-color': '#3d3d3d',
+                    'text-halo-color': '#ffffff',
+                    'text-halo-width': 0.5
+                };
+            } else {
+                layerDef.layout = {
+                    'icon-image': 'route-end-pin-icon',
+                    'icon-size': 1,
+                    'icon-anchor': 'bottom',
+                    'icon-allow-overlap': true
+                };
+            }
+            map.addLayer(layerDef);
+        };
+        const routeEndPinSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="#3d3d3d" stroke="#1a1a1a" stroke-width="0.6" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
+        map.loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(routeEndPinSvg), (err, image) => {
+            if (err || !image) {
+                addAnnotationsPointLayer(true);
+                return;
+            }
+            if (!map.hasImage('route-end-pin-icon')) {
+                map.addImage('route-end-pin-icon', image);
+            }
+            addAnnotationsPointLayer(false);
+        });
+        map.addSource('user-circles', {
+            type: 'geojson',
+            data: userCirclesData
+        });
+        map.addLayer({
+            id: 'user-circles-fill',
+            type: 'fill',
+            source: 'user-circles',
+            paint: {
+                'fill-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                'fill-opacity': ['case', ['==', ['get', 'selected'], true], 0.28, 0.2]
+            }
+        });
+        map.addLayer({
+            id: 'user-circles-line',
+            type: 'line',
+            source: 'user-circles',
+            paint: {
+                'line-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                'line-width': ['case', ['==', ['get', 'selected'], true], 3, 1]
+            }
+        });
+        map.addSource('map-text', {
+            type: 'geojson',
+            data: mapTextData
+        });
+        map.addLayer({
+            id: 'map-text-layer',
+            type: 'symbol',
+            source: 'map-text',
+            layout: {
+                'text-field': ['get', 'text'],
+                'text-size': ['coalesce', ['to-number', ['get', 'textSize']], 15],
+                'text-font': ['Lato Regular', 'Arial Unicode MS Regular'],
+                'text-offset': [0, 0],
+                'text-anchor': 'center',
+                'text-max-width': 7,
+                'text-allow-overlap': true
+            },
+            paint: {
+                'text-color': '#111111',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 1.5
+            }
+        });
+        // Ensure annotation layers are on top of Draw's layers so selected colors show; circles on top
+        ['annotations-fill', 'annotations-line', 'annotations-linestring', 'annotations-point', 'user-circles-fill', 'user-circles-line', 'map-text-layer'].forEach(id => {
+            if (map.getLayer(id)) map.moveLayer(id);
+        });
+    });
+
+    function getSelectedLabel() {
+        const input = document.getElementById('label-' + selectedColorIndex);
+        return input ? input.value.trim() : '';
+    }
+
+    function syncAnnotations() {
+        const source = map.getSource('annotations');
+        if (!source) return;
+        source.setData({ type: 'FeatureCollection', features: draw.getAll() });
+    }
+
+    function setActiveDrawButton(mode) {
+        document.querySelectorAll('.draw-tool-btn').forEach(btn => {
+            if (!btn.dataset.drawMode) return;
+            btn.classList.toggle('active', btn.dataset.drawMode === mode);
+        });
+    }
+
+    function finalizeActiveTextDraft(saveToMap) {
+        if (!activeTextDraft) return;
+        const marker = activeTextDraft.marker;
+        const textarea = activeTextDraft.textarea;
+        const textValue = ((textarea && textarea.value) || '').trim();
+        const textSize = Math.max(10, Math.min(40, Number(activeTextDraft.fontSize) || 15));
+        if (saveToMap && marker && textValue) {
+            const lngLat = marker.getLngLat();
+            mapTextData.features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [lngLat.lng, lngLat.lat] },
+                properties: {
+                    text: textValue,
+                    textId: Number.isFinite(activeTextDraft.editingId) ? activeTextDraft.editingId : nextMapTextId++,
+                    textSize
+                }
+            });
+            refreshMapTextSource();
+            pushAnnotationSnapshot();
+        }
+        if (activeTextDraft.resizeObserver) activeTextDraft.resizeObserver.disconnect();
+        if (marker) marker.remove();
+        activeTextDraft = null;
+    }
+
+    function createTextDraftAt(lngLat, opts) {
+        finalizeActiveTextDraft(false);
+        const options = opts || {};
+        const wrapper = document.createElement('div');
+        wrapper.style.width = '180px';
+        wrapper.style.minWidth = '120px';
+        wrapper.style.maxWidth = '360px';
+        wrapper.style.background = 'rgba(255,255,255,0.98)';
+        wrapper.style.border = '1px solid #6A5ACD';
+        wrapper.style.borderRadius = '6px';
+        wrapper.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
+        wrapper.style.padding = '4px';
+        wrapper.style.pointerEvents = 'auto';
+
+        const textarea = document.createElement('textarea');
+        textarea.rows = 2;
+        textarea.placeholder = translations[currentLang].mapTextPlaceholder;
+        textarea.value = options.text || '';
+        textarea.style.width = '100%';
+        textarea.style.minHeight = '48px';
+        textarea.style.maxHeight = '220px';
+        textarea.style.resize = 'both';
+        textarea.style.display = 'block';
+        textarea.style.border = '1px solid #ddd';
+        textarea.style.borderRadius = '4px';
+        textarea.style.padding = '6px 8px';
+        textarea.style.boxSizing = 'border-box';
+        textarea.style.fontSize = (options.textSize || 15) + 'px';
+        textarea.style.lineHeight = '1.3';
+        textarea.style.background = '#ffffff';
+        textarea.style.outline = 'none';
+        wrapper.appendChild(textarea);
+
+        const marker = new mapboxgl.Marker({ element: wrapper, anchor: 'top-left', draggable: true })
+            .setLngLat(lngLat)
+            .addTo(map);
+
+        const ro = new ResizeObserver((entries) => {
+            const boxH = entries[0] && entries[0].contentRect ? entries[0].contentRect.height : 48;
+            const fs = Math.max(10, Math.min(40, Math.round((boxH / 48) * 15)));
+            textarea.style.fontSize = fs + 'px';
+            if (activeTextDraft) activeTextDraft.fontSize = fs;
+        });
+        ro.observe(textarea);
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                finalizeActiveTextDraft(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finalizeActiveTextDraft(false);
+                setTextMode(false);
+            }
+        });
+
+        activeTextDraft = {
+            marker,
+            textarea,
+            fontSize: Number(options.textSize) || 15,
+            editingId: Number.isFinite(options.editingId) ? options.editingId : null,
+            resizeObserver: ro
+        };
+        setTimeout(() => textarea.focus(), 0);
+    }
+
+    function setTextMode(active) {
+        textModeActive = active;
+        const btn = document.getElementById('text-mode-btn');
+        if (btn) {
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        }
+        if (active) setActiveDrawButton(null);
+        if (!active) finalizeActiveTextDraft(true);
+        map.getCanvas().style.cursor = active ? 'text' : '';
+    }
+
+    function refreshMapTextSource() {
+        const src = map.getSource('map-text');
+        if (src) src.setData(mapTextData);
+    }
+
+    function setFeatureCollectionFeatures(targetCollection, sourceCollection) {
+        targetCollection.features.length = 0;
+        const sourceFeatures = sourceCollection && Array.isArray(sourceCollection.features) ? sourceCollection.features : [];
+        sourceFeatures.forEach(feature => targetCollection.features.push(feature));
+    }
+
+    function getCircleCenterFromFeature(feature) {
+        if (!feature || !feature.properties) return null;
+        const lng = Number(feature.properties.centerLng);
+        const lat = Number(feature.properties.centerLat);
+        if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat];
+        try {
+            if (typeof turf !== 'undefined' && feature.geometry) {
+                const centerFeature = turf.centerOfMass(feature);
+                const coords = centerFeature && centerFeature.geometry && centerFeature.geometry.coordinates;
+                if (Array.isArray(coords) && coords.length >= 2) return [coords[0], coords[1]];
+            }
+        } catch (e) {
+            // ignore and fallback below
+        }
+        return null;
+    }
+
+    function ensureCircleFeatureMetadata(feature) {
+        if (!feature) return;
+        if (!feature.properties) feature.properties = {};
+        if (!Number.isFinite(Number(feature.properties.circleId))) {
+            feature.properties.circleId = nextCircleId++;
+        } else {
+            nextCircleId = Math.max(nextCircleId, Number(feature.properties.circleId) + 1);
+        }
+        if (!Number.isFinite(Number(feature.properties.radiusM))) {
+            feature.properties.radiusM = currentCircleRadiusMeters;
+        }
+        const center = getCircleCenterFromFeature(feature);
+        if (center) {
+            feature.properties.centerLng = center[0];
+            feature.properties.centerLat = center[1];
+        }
+    }
+
+    function refreshUserCirclesSource() {
+        const source = map.getSource('user-circles');
+        if (source) source.setData(userCirclesData);
+    }
+
+    function updateCircleResizeUI() {
+        const controls = document.getElementById('circle-resize-controls');
+        const range = document.getElementById('circle-resize-range');
+        const value = document.getElementById('circle-resize-value');
+        const activeCircle = userCirclesData.features.find((f) => Number(f.properties && f.properties.circleId) === selectedCircleId);
+        if (!controls || !range || !value) return;
+        const radius = activeCircle
+            ? Math.max(50, Math.min(3000, Number(activeCircle.properties && activeCircle.properties.radiusM) || currentCircleRadiusMeters))
+            : currentCircleRadiusMeters;
+        range.value = String(radius);
+        value.textContent = radius + ' m';
+        controls.style.display = (circleModeActive || !!activeCircle) ? 'flex' : 'none';
+    }
+
+    function setSelectedCircle(circleId) {
+        selectedCircleId = Number.isFinite(Number(circleId)) ? Number(circleId) : null;
+        userCirclesData.features.forEach((feature) => {
+            if (!feature.properties) feature.properties = {};
+            feature.properties.selected = selectedCircleId !== null && Number(feature.properties.circleId) === selectedCircleId;
+        });
+        refreshUserCirclesSource();
+        updateCircleResizeUI();
+    }
+
+    function resizeSelectedCircle(radiusM) {
+        if (!Number.isFinite(radiusM) || radiusM <= 0 || typeof turf === 'undefined') return;
+        const feature = userCirclesData.features.find((f) => Number(f.properties && f.properties.circleId) === selectedCircleId);
+        if (!feature) return;
+        const center = getCircleCenterFromFeature(feature);
+        if (!center) return;
+        const rebuilt = turf.circle(center, radiusM, { steps: 64, units: 'meters' });
+        feature.geometry = rebuilt.geometry;
+        feature.properties.radiusM = radiusM;
+        feature.properties.centerLng = center[0];
+        feature.properties.centerLat = center[1];
+        refreshUserCirclesSource();
+        updateCircleResizeUI();
+    }
+
+    function getAnnotationSnapshot() {
+        const legendLabels = [];
+        for (let i = 0; i <= 7; i++) {
+            const input = document.getElementById('label-' + i);
+            legendLabels.push({
+                colorIndex: i,
+                color: ANNOTATION_COLORS[i] || '#95a5a6',
+                label: (input && typeof input.value === 'string') ? input.value.trim() : ''
+            });
+        }
+        return JSON.parse(JSON.stringify({
+            draw: draw.getAll(),
+            circles: userCirclesData,
+            text: mapTextData,
+            nextTextId: nextMapTextId,
+            legend: {
+                title: (document.getElementById('annotations-label-legend-title')?.textContent || '').trim(),
+                items: legendLabels
+            },
+            userDisplayName: currentUser || ''
+        }));
+    }
+
+    function updateAnnotationHistoryButtons() {
+        const undoBtn = document.getElementById('undo-annotation-btn');
+        const redoBtn = document.getElementById('redo-annotation-btn');
+        if (undoBtn) undoBtn.disabled = annotationHistoryPast.length <= 1;
+        if (redoBtn) redoBtn.disabled = annotationHistoryFuture.length === 0;
+    }
+
+    function pushAnnotationSnapshot() {
+        if (applyingAnnotationHistory) return;
+        annotationHistoryPast.push(getAnnotationSnapshot());
+        if (annotationHistoryPast.length > 100) annotationHistoryPast.shift();
+        annotationHistoryFuture.length = 0;
+        updateAnnotationHistoryButtons();
+    }
+
+    function applyAnnotationSnapshot(snapshot) {
+        applyingAnnotationHistory = true;
+        draw.deleteAll();
+        if (snapshot.draw && Array.isArray(snapshot.draw.features) && snapshot.draw.features.length > 0) {
+            draw.add(snapshot.draw);
+        }
+        setFeatureCollectionFeatures(userCirclesData, snapshot.circles);
+        userCirclesData.features.forEach((feature) => {
+            ensureCircleFeatureMetadata(feature);
+            if (feature.properties) feature.properties.selected = false;
+        });
+        selectedCircleId = null;
+        const circlesSource = map.getSource('user-circles');
+        if (circlesSource) circlesSource.setData(userCirclesData);
+        setFeatureCollectionFeatures(mapTextData, snapshot.text);
+        refreshMapTextSource();
+        nextMapTextId = snapshot.nextTextId || 1;
+        syncAnnotations();
+        applyingAnnotationHistory = false;
+        updateAnnotationHistoryButtons();
+    }
+
+    function undoAnnotation() {
+        if (annotationHistoryPast.length <= 1) return;
+        const current = annotationHistoryPast.pop();
+        annotationHistoryFuture.push(current);
+        const previous = annotationHistoryPast[annotationHistoryPast.length - 1];
+        applyAnnotationSnapshot(JSON.parse(JSON.stringify(previous)));
+    }
+
+    function redoAnnotation() {
+        if (annotationHistoryFuture.length === 0) return;
+        const next = annotationHistoryFuture.pop();
+        annotationHistoryPast.push(JSON.parse(JSON.stringify(next)));
+        applyAnnotationSnapshot(JSON.parse(JSON.stringify(next)));
+    }
+
+    function updateDrawToolColor() {
+        const color = ANNOTATION_COLORS[selectedColorIndex] || '#43159e';
+        const style = map.getStyle();
+        if (style && Array.isArray(style.layers)) {
+            style.layers.forEach(layer => {
+                if (!layer.id || layer.id.indexOf('gl-draw') !== 0 || !map.getLayer(layer.id)) return;
+                const isActiveLayer = layer.id.indexOf('hot') !== -1;
+                if (layer.type === 'line') {
+                    map.setPaintProperty(
+                        layer.id,
+                        'line-color',
+                        isActiveLayer ? color : ['coalesce', ['get', 'user_drawColor'], ['get', 'drawColor'], '#3bb2d0']
+                    );
+                } else if (layer.type === 'fill') {
+                    map.setPaintProperty(
+                        layer.id,
+                        'fill-color',
+                        isActiveLayer ? color : ['coalesce', ['get', 'user_drawColor'], ['get', 'drawColor'], '#3bb2d0']
+                    );
+                } else if (layer.type === 'circle') {
+                    map.setPaintProperty(
+                        layer.id,
+                        'circle-color',
+                        isActiveLayer ? color : ['coalesce', ['get', 'user_drawColor'], ['get', 'drawColor'], '#3bb2d0']
+                    );
+                }
+            });
+        }
+    }
+
+    // Listen for draw events on the map (Mapbox Draw does not expose draw.on)
+    map.on('draw.create', (e) => {
+        e.features.forEach(f => {
+            f.properties.colorIndex = selectedColorIndex;
+            f.properties.drawColor = ANNOTATION_COLORS[selectedColorIndex] || '#43159e';
+            f.properties.label = getSelectedLabel();
+            draw.add(f);
+        });
+        syncAnnotations();
+        pushAnnotationSnapshot();
+    });
+    map.on('draw.update', (e) => {
+        e.features.forEach(f => {
+            if (!f.properties) f.properties = {};
+            if (!f.properties.drawColor && !f.properties.user_drawColor) {
+                const idx = Number.isInteger(f.properties.colorIndex) ? f.properties.colorIndex : selectedColorIndex;
+                f.properties.drawColor = ANNOTATION_COLORS[idx] || '#43159e';
+            }
+            draw.add(f);
+        });
+        syncAnnotations();
+        pushAnnotationSnapshot();
+    });
+    map.on('draw.delete', () => {
+        syncAnnotations();
+        pushAnnotationSnapshot();
+    });
+    map.on('load', updateDrawToolColor);
+    map.on('load', () => {
+        if (annotationHistoryPast.length === 0) {
+            pushAnnotationSnapshot();
+        } else {
+            updateAnnotationHistoryButtons();
+        }
+    });
+
+    document.querySelectorAll('.draw-tool-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.drawMode;
+            if (!mode) return;
+            if (textModeActive) setTextMode(false);
+            if (circleModeActive) setCircleMode(false);
+            setSelectedCircle(null);
+            draw.changeMode(mode);
+            setActiveDrawButton(mode);
+        });
+    });
+
+    document.querySelectorAll('.color-swatch').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedColorIndex = parseInt(btn.dataset.colorIndex, 10);
+            document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            updateDrawToolColor();
+        });
+    });
+
+    // Keep panel swatches in sync with ANNOTATION_COLORS order
+    document.querySelectorAll('.color-swatch').forEach(btn => {
+        const i = parseInt(btn.dataset.colorIndex, 10);
+        if (ANNOTATION_COLORS[i]) btn.style.background = ANNOTATION_COLORS[i];
+    });
+
+    function updateAnnotationsLabelLegend() {
+        for (let i = 0; i <= 7; i++) {
+            const input = document.getElementById('label-' + i);
+            const sw = document.getElementById('label-legend-' + i + '-swatch');
+            const tx = document.getElementById('label-legend-' + i + '-text');
+            if (!input || !sw || !tx) continue;
+            sw.style.background = ANNOTATION_COLORS[i] || '#95a5a6';
+            const v = (input.value || '').trim();
+            tx.textContent = v || input.placeholder || '';
+        }
+    }
+    for (let i = 0; i <= 7; i++) {
+        const labelInput = document.getElementById('label-' + i);
+        if (labelInput) {
+            labelInput.addEventListener('input', updateAnnotationsLabelLegend);
+            labelInput.addEventListener('change', updateAnnotationsLabelLegend);
+        }
+    }
+    updateAnnotationsLabelLegend();
+
+    // ----- Circle tool (geographic circles via Turf) -----
+
+    function setCircleMode(active) {
+        circleModeActive = active;
+        const btn = document.getElementById('circle-mode-btn');
+        if (active) {
+            if (map.loaded()) draw.changeMode('simple_select');
+            if (btn) {
+                btn.classList.add('active');
+                btn.setAttribute('aria-pressed', 'true');
+            }
+            setSelectedCircle(null);
+            map.getCanvas().style.cursor = 'crosshair';
+        } else {
+            if (btn) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-pressed', 'false');
+            }
+            map.getCanvas().style.cursor = '';
+        }
+        updateCircleHintText();
+        updateCircleResizeUI();
+    }
+
+    document.getElementById('circle-mode-btn').addEventListener('click', () => {
+        if (!circleModeActive && textModeActive) setTextMode(false);
+        if (!circleModeActive) setActiveDrawButton(null);
+        setCircleMode(!circleModeActive);
+    });
+
+    map.on('click', (e) => {
+        if (!circleModeActive) return;
+        if (typeof turf === 'undefined') return;
+        if (!map.getSource('user-circles')) return;
+        const radiusM = currentCircleRadiusMeters;
+        const circleId = nextCircleId++;
+        const color = ANNOTATION_COLORS[selectedColorIndex] || circleSwatchColor;
+        const circle = turf.circle([e.lngLat.lng, e.lngLat.lat], radiusM, { steps: 64, units: 'meters' });
+        if (!circle.properties) circle.properties = {};
+        circle.properties.circleId = circleId;
+        circle.properties.radiusM = radiusM;
+        circle.properties.centerLng = e.lngLat.lng;
+        circle.properties.centerLat = e.lngLat.lat;
+        circle.properties.color = color;
+        circle.properties.selected = false;
+        userCirclesData.features.push(circle);
+        setSelectedCircle(circleId);
+        pushAnnotationSnapshot();
+    });
+
+    map.on('mouseenter', 'user-circles-fill', () => {
+        if (!circleModeActive) map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'user-circles-fill', () => {
+        if (!circleModeActive && !textModeActive) map.getCanvas().style.cursor = '';
+    });
+    map.on('click', 'user-circles-fill', (e) => {
+        if (circleModeActive) return;
+        const feature = e.features && e.features[0];
+        if (!feature) return;
+        const circleId = Number(feature.properties && feature.properties.circleId);
+        if (!Number.isFinite(circleId)) return;
+        e.preventDefault();
+        if (e.originalEvent) e.originalEvent.stopPropagation();
+        setSelectedCircle(circleId);
+    });
+    map.on('click', () => {
+        if (circleModeActive || textModeActive) return;
+        if (selectedCircleId !== null) setSelectedCircle(null);
+    });
+
+    document.getElementById('text-mode-btn').addEventListener('click', () => {
+        if (!textModeActive && circleModeActive) setCircleMode(false);
+        if (!textModeActive) setSelectedCircle(null);
+        setTextMode(!textModeActive);
+    });
+
+    function beginEditSavedTextFeature(feature) {
+        if (!feature || !feature.geometry || !feature.properties) return;
+        const id = Number(feature.properties.textId);
+        if (!Number.isFinite(id)) return;
+        const idx = mapTextData.features.findIndex((f) => f.properties && Number(f.properties.textId) === id);
+        if (idx === -1) return;
+        const existing = mapTextData.features[idx];
+        mapTextData.features.splice(idx, 1);
+        refreshMapTextSource();
+        const coords = existing.geometry && existing.geometry.coordinates ? existing.geometry.coordinates : [0, 0];
+        const lngLat = { lng: coords[0], lat: coords[1] };
+        createTextDraftAt(lngLat, {
+            text: existing.properties.text || '',
+            textSize: Number(existing.properties.textSize) || 15,
+            editingId: id
+        });
+    }
+
+    function handleSavedNoteMouseDown(e) {
+        const feature = e.features && e.features[0];
+        if (!feature || !feature.properties) return;
+        const id = Number(feature.properties.textId);
+        if (!Number.isFinite(id)) return;
+        draggingTextId = id;
+        suppressNextTextClick = true;
+        map.dragPan.disable();
+        map.getCanvas().style.cursor = 'grabbing';
+    }
+    map.on('mouseenter', 'map-text-layer', () => {
+        if (draggingTextId === null && !textModeActive) map.getCanvas().style.cursor = 'move';
+    });
+    map.on('mouseleave', 'map-text-layer', () => {
+        if (draggingTextId === null && !textModeActive) map.getCanvas().style.cursor = '';
+    });
+    map.on('mousedown', 'map-text-layer', handleSavedNoteMouseDown);
+    map.on('click', 'map-text-layer', (e) => {
+        if (!textModeActive) return;
+        e.preventDefault();
+        if (e.originalEvent) e.originalEvent.stopPropagation();
+        const feature = e.features && e.features[0];
+        beginEditSavedTextFeature(feature);
+    });
+    map.on('mousemove', (e) => {
+        if (draggingTextId === null) return;
+        const target = mapTextData.features.find(f => f.properties && Number(f.properties.textId) === draggingTextId);
+        if (!target) return;
+        target.geometry.coordinates = [e.lngLat.lng, e.lngLat.lat];
+        refreshMapTextSource();
+    });
+    map.on('mouseup', () => {
+        if (draggingTextId === null) return;
+        draggingTextId = null;
+        map.dragPan.enable();
+        map.getCanvas().style.cursor = textModeActive ? 'text' : '';
+        pushAnnotationSnapshot();
+    });
+
+    map.on('click', (e) => {
+        if (!textModeActive) return;
+        if (suppressNextTextClick) {
+            suppressNextTextClick = false;
+            return;
+        }
+        if (activeTextDraft) finalizeActiveTextDraft(true);
+        createTextDraftAt(e.lngLat);
+    });
+
+    document.getElementById('undo-annotation-btn').addEventListener('click', undoAnnotation);
+    document.getElementById('redo-annotation-btn').addEventListener('click', redoAnnotation);
+    document.getElementById('circle-resize-range').addEventListener('input', (e) => {
+        const radius = parseInt(e.target.value, 10);
+        if (!Number.isFinite(radius)) return;
+        if (selectedCircleId !== null) {
+            resizeSelectedCircle(radius);
+            return;
+        }
+        currentCircleRadiusMeters = radius;
+        const value = document.getElementById('circle-resize-value');
+        if (value) value.textContent = radius + ' m';
+    });
+    document.getElementById('circle-resize-range').addEventListener('change', () => {
+        if (selectedCircleId !== null) pushAnnotationSnapshot();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && circleModeActive) setCircleMode(false);
+    });
+
+    document.querySelectorAll('.profile-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            runRouteVisualization(false);
+        });
+    });
+
+    function getSelectedProfile() {
+        return document.querySelector('.profile-btn.active').dataset.profile;
+    }
+
+    async function getMapAnnotationsScreenshotDataUrl() {
+        if (!map || !map.getCanvas) return null;
+        if (!map.loaded()) {
+            await new Promise((resolve) => map.once('load', resolve));
+        }
+        async function blobToDataUrl(blob) {
+            return new Promise((resolve) => {
+                if (!blob) return resolve(null);
+                const fr = new FileReader();
+                fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : null);
+                fr.onerror = () => resolve(null);
+                fr.readAsDataURL(blob);
+            });
+        }
+        async function captureFromCanvas() {
+            const canvas = map.getCanvas();
+            try {
+                const url = canvas.toDataURL('image/png');
+                if (url) return url;
+            } catch (e) {
+                // ignore and continue to blob fallback
+            }
+            try {
+                const blob = await new Promise((resolve) => {
+                    if (!canvas.toBlob) return resolve(null);
+                    canvas.toBlob((b) => resolve(b), 'image/png');
+                });
+                const blobUrl = await blobToDataUrl(blob);
+                if (blobUrl) return blobUrl;
+            } catch (e2) {
+                // ignore and continue to clone fallback
+            }
+            try {
+                const w = canvas.width || Math.max(1, canvas.clientWidth || 1);
+                const h = canvas.height || Math.max(1, canvas.clientHeight || 1);
+                const tmp = document.createElement('canvas');
+                tmp.width = w;
+                tmp.height = h;
+                const ctx = tmp.getContext('2d');
+                if (!ctx) return null;
+                ctx.drawImage(canvas, 0, 0, w, h);
+                return tmp.toDataURL('image/png');
+            } catch (e3) {
+                return null;
+            }
+        }
+        // Ensure latest map/annotation updates are painted before capture.
+        for (let i = 0; i < 5; i++) {
+            if (map.triggerRepaint) map.triggerRepaint();
+            await Promise.race([
+                new Promise((resolve) => map.once('idle', resolve)),
+                new Promise((resolve) => setTimeout(resolve, 220))
+            ]);
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const dataUrl = await captureFromCanvas();
+            if (dataUrl) return dataUrl;
+        }
+        return null;
+    }
+
+    async function buildMapSnapshotWithLegendDataUrl(mapDataUrl) {
+        if (!mapDataUrl) return null;
+        const legendRoot = document.getElementById('annotations-label-legend');
+        const mapCanvas = map.getCanvas ? map.getCanvas() : null;
+        if (!legendRoot || !mapCanvas) return mapDataUrl;
+
+        const legendRows = [];
+        for (let i = 0; i <= 7; i++) {
+            const sw = document.getElementById('label-legend-' + i + '-swatch');
+            const tx = document.getElementById('label-legend-' + i + '-text');
+            if (!sw || !tx) continue;
+            const label = (tx.textContent || '').trim();
+            if (!label) continue;
+            legendRows.push({
+                color: sw.style.background || '#95a5a6',
+                text: label
+            });
+        }
+        if (!legendRows.length) return mapDataUrl;
+
+        const legendTitleEl = document.getElementById('annotations-label-legend-title');
+        const legendTitle = ((legendTitleEl && legendTitleEl.textContent) || 'Legend').trim();
+        const userNameLabel = currentUser ? `${translations[currentLang].mapSavedByPrefix}${currentUser}` : '';
+
+        const mapImage = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = mapDataUrl;
+        });
+        if (!mapImage) return mapDataUrl;
+
+        const mapW = mapCanvas.width || mapImage.width || 1024;
+        const mapH = mapCanvas.height || mapImage.height || 1024;
+        const pad = 20;
+        const swatchSize = 16;
+        const rowGap = 10;
+        const titleGap = 14;
+        const userGap = userNameLabel ? 16 : 0;
+        const legendWidth = 280;
+        const titleHeight = 24;
+        const legendHeight = pad + titleHeight + userGap + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
+        const outW = mapW + legendWidth + pad * 2;
+        const outH = Math.max(mapH + pad * 2, legendHeight);
+
+        const out = document.createElement('canvas');
+        out.width = outW;
+        out.height = outH;
+        const ctx = out.getContext('2d');
+        if (!ctx) return mapDataUrl;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, outW, outH);
+        ctx.drawImage(mapImage, pad, pad, mapW, mapH);
+
+        const legendX = pad + mapW + pad;
+        let y = pad + titleHeight;
+        ctx.fillStyle = '#222222';
+        ctx.font = '700 20px Lato, Arial, sans-serif';
+        ctx.fillText(legendTitle, legendX, y);
+        if (userNameLabel) {
+            y += 20;
+            ctx.fillStyle = '#555555';
+            ctx.font = '600 14px Lato, Arial, sans-serif';
+            ctx.fillText(userNameLabel, legendX, y);
+        }
+        y += titleGap;
+
+        ctx.font = '15px Lato, Arial, sans-serif';
+        legendRows.forEach((row) => {
+            y += swatchSize;
+            ctx.fillStyle = row.color || '#95a5a6';
+            ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+            ctx.fillStyle = '#333333';
+            ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
+            y += rowGap;
+        });
+
+        return out.toDataURL('image/png');
+    }
+
+    async function buildGalleryPreviewDataUrl(sourceDataUrl) {
+        if (!sourceDataUrl) return null;
+        const srcImage = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = sourceDataUrl;
+        });
+        if (!srcImage) return null;
+        const maxSide = 420;
+        const srcW = srcImage.width || 1;
+        const srcH = srcImage.height || 1;
+        const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+        const w = Math.max(1, Math.round(srcW * scale));
+        const h = Math.max(1, Math.round(srcH * scale));
+        const out = document.createElement('canvas');
+        out.width = w;
+        out.height = h;
+        const ctx = out.getContext('2d');
+        if (!ctx) return sourceDataUrl;
+        ctx.drawImage(srcImage, 0, 0, w, h);
+        // JPEG thumbnail is much smaller for localStorage/gallery use.
+        return out.toDataURL('image/jpeg', 0.82);
+    }
+
+    async function apiRequest(path, options) {
+        const res = await fetch(`${API_BASE}${path}`, {
+            credentials: 'include',
+            ...options
+        });
+        if (!res.ok) {
+            let message = `Request failed (${res.status})`;
+            try {
+                const json = await res.json();
+                if (json && json.error) message = json.error;
+            } catch (e) {
+                // no-op fallback
+            }
+            throw new Error(message);
+        }
+        return res.json();
+    }
+
+    function toAbsoluteApiUrl(url) {
+        if (!url || typeof url !== 'string') return url;
+        if (/^https?:\/\//i.test(url)) return url;
+        if (url.startsWith('/')) return `${API_BASE}${url}`;
+        return url;
+    }
+
+    function normalizePreviewEntry(entry) {
+        if (!entry || typeof entry !== 'object') return entry;
+        return {
+            ...entry,
+            dataUrl: toAbsoluteApiUrl(entry.dataUrl),
+            previewPngUrl: toAbsoluteApiUrl(entry.previewPngUrl)
+        };
+    }
+
+    function normalizeUserName(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    function loadPreviewGallery() {
+        return Array.isArray(creatorPreviewGallery) ? creatorPreviewGallery : [];
+    }
+
+    async function refreshPreviewGalleryFromApi() {
+        if (!currentUser) {
+            creatorPreviewGallery = [];
+            selectedPreviewGalleryId = null;
+            return creatorPreviewGallery;
+        }
+        const userQuery = currentUser ? `?userName=${encodeURIComponent(currentUser)}` : '';
+        const data = await apiRequest(`/api/previews${userQuery}`);
+        const normalizedCurrentUser = normalizeUserName(currentUser);
+        creatorPreviewGallery = Array.isArray(data.previews)
+            ? data.previews
+                .filter((item) => normalizeUserName(item && item.userDisplayName) === normalizedCurrentUser)
+                .map(normalizePreviewEntry)
+            : [];
+        return creatorPreviewGallery;
+    }
+
+    async function appendPreviewToGallery(previewPngDataUrl, thumbDataUrl, annotationsSnapshot) {
+        const title = `Map Preview ${new Date().toLocaleString()}`;
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('userName', currentUser || '');
+        formData.append('annotationsJson', JSON.stringify(annotationsSnapshot));
+        const previewBlob = await (await fetch(previewPngDataUrl)).blob();
+        formData.append('previewPng', previewBlob, 'preview.png');
+        if (thumbDataUrl) {
+            const thumbBlob = await (await fetch(thumbDataUrl)).blob();
+            formData.append('thumbnailPng', thumbBlob, 'preview-thumb.jpg');
+        }
+        const created = await apiRequest('/api/previews', {
+            method: 'POST',
+            body: formData
+        });
+        const normalized = normalizePreviewEntry(created);
+        creatorPreviewGallery = [normalized, ...creatorPreviewGallery.filter((item) => item.id !== normalized.id)];
+        return created.id || null;
+    }
+
+    async function removePreviewFromGalleryById(id) {
+        if (!id) return;
+        await apiRequest(`/api/previews/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        creatorPreviewGallery = creatorPreviewGallery.filter((item) => item.id !== id);
+    }
+
+    function getSelectedGalleryEntry() {
+        if (!selectedPreviewGalleryId) return null;
+        return loadPreviewGallery().find((item) => item.id === selectedPreviewGalleryId) || null;
+    }
+
+    function getGalleryEntryForShownPreview() {
+        const img = document.getElementById('map-snapshot-preview');
+        if (img && img.src) {
+            const list = loadPreviewGallery();
+            const currentPath = new URL(img.src, window.location.href).pathname;
+            const match = list.find((item) => {
+                if (!item.dataUrl) return false;
+                try {
+                    return new URL(item.dataUrl, window.location.href).pathname === currentPath;
+                } catch (e) {
+                    return item.dataUrl === img.src;
+                }
+            });
+            if (match) return match;
+        }
+        return getSelectedGalleryEntry();
+    }
+
+    function raiseAnnotationLayersToTop() {
+        ['annotations-fill', 'annotations-line', 'annotations-linestring', 'annotations-point', 'user-circles-fill', 'user-circles-line', 'map-text-layer'].forEach((id) => {
+            if (map.getLayer(id)) map.moveLayer(id);
+        });
+    }
+
+    function syncWrapFromSelected() {
+        const e = getSelectedGalleryEntry();
+        const wrap = document.getElementById('map-snapshot-preview-wrap');
+        const img = document.getElementById('map-snapshot-preview');
+        if (!e) {
+            mapSnapshotDataUrl = null;
+            if (img) img.removeAttribute('src');
+            if (wrap) wrap.style.display = 'none';
+            return;
+        }
+        mapSnapshotDataUrl = e.dataUrl;
+        if (img) img.src = e.dataUrl;
+        if (wrap) wrap.style.display = '';
+    }
+
+    function restoreSelectedGalleryAnnotations() {
+        const e = getGalleryEntryForShownPreview();
+        if (!e || !e.annotations) return;
+        if (e.id) selectedPreviewGalleryId = e.id;
+        applyAnnotationSnapshot(JSON.parse(JSON.stringify(e.annotations)));
+        pushAnnotationSnapshot();
+        raiseAnnotationLayersToTop();
+    }
+
+    function renderCreatorAnnotationGallery() {
+        const host = document.getElementById('creator-saved-annotations-gallery');
+        if (!host) return;
+        host.innerHTML = '';
+        const list = loadPreviewGallery();
+        for (let i = list.length - 1; i >= 0; i--) {
+            const item = list[i];
+            const tile = document.createElement('div');
+            tile.className = 'creator-saved-annotation-tile';
+            if (item.id === selectedPreviewGalleryId) tile.classList.add('selected');
+            const img = document.createElement('img');
+            img.src = item.dataUrl;
+            img.alt = '';
+            tile.appendChild(img);
+            tile.addEventListener('click', () => {
+                selectedPreviewGalleryId = item.id;
+                syncWrapFromSelected();
+                if (item.annotations) {
+                    applyAnnotationSnapshot(JSON.parse(JSON.stringify(item.annotations)));
+                    pushAnnotationSnapshot();
+                }
+                renderCreatorAnnotationGallery();
+            });
+            host.appendChild(tile);
+        }
+    }
+
+    async function initCreatorPreviewGalleryFromStorage() {
+        await refreshPreviewGalleryFromApi();
+        const list = loadPreviewGallery();
+        if (!list.length) {
+            syncWrapFromSelected();
+            renderCreatorAnnotationGallery();
+            return;
+        }
+        if (!selectedPreviewGalleryId) selectedPreviewGalleryId = list[list.length - 1].id;
+        syncWrapFromSelected();
+        renderCreatorAnnotationGallery();
+    }
+
+    const EMPTY_ANNOTATION_SNAPSHOT = {
+        draw: { type: 'FeatureCollection', features: [] },
+        circles: { type: 'FeatureCollection', features: [] },
+        text: { type: 'FeatureCollection', features: [] },
+        nextTextId: 1
+    };
+
+    function clearAllMapAnnotations() {
+        finalizeActiveTextDraft(false);
+        applyAnnotationSnapshot(JSON.parse(JSON.stringify(EMPTY_ANNOTATION_SNAPSHOT)));
+        pushAnnotationSnapshot();
+    }
+
+    document.getElementById('clear-annotations-btn').addEventListener('click', clearAllMapAnnotations);
+
+    async function runSaveMapPreview() {
+        if (!currentUser) {
+            showLoginOverlay(translations[currentLang].loginError);
+            return;
+        }
+        finalizeActiveTextDraft(true);
+        syncAnnotations();
+        refreshMapTextSource();
+        if (map && map.triggerRepaint) map.triggerRepaint();
+        await Promise.race([
+            new Promise((resolve) => map.once('idle', resolve)),
+            new Promise((resolve) => setTimeout(resolve, 180))
+        ]);
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const saveBtn = document.getElementById('save-shapes-png');
+        saveBtn.disabled = true;
+        try {
+            const mapOnlyPngUrl = await getMapAnnotationsScreenshotDataUrl();
+            if (!mapOnlyPngUrl) return;
+            const galleryPreviewDataUrl = await buildGalleryPreviewDataUrl(mapOnlyPngUrl) || mapOnlyPngUrl;
+            const pngUrl = await buildMapSnapshotWithLegendDataUrl(mapOnlyPngUrl) || mapOnlyPngUrl;
+            // Update preview first so user always sees immediate feedback.
+            mapSnapshotDataUrl = galleryPreviewDataUrl;
+            const previewImg = document.getElementById('map-snapshot-preview');
+            const previewWrap = document.getElementById('map-snapshot-preview-wrap');
+            if (previewImg) previewImg.src = galleryPreviewDataUrl;
+            if (previewWrap) previewWrap.style.display = '';
+            const annotationsSnapshot = getAnnotationSnapshot();
+            annotationsSnapshot.userDisplayName = currentUser;
+            annotationsSnapshot.savedAt = new Date().toISOString();
+            // Keep gallery/viewer payload lightweight and map-focused for reliability.
+            selectedPreviewGalleryId = await appendPreviewToGallery(pngUrl, galleryPreviewDataUrl, annotationsSnapshot);
+            if (selectedPreviewGalleryId) syncWrapFromSelected();
+            await refreshPreviewGalleryFromApi();
+            renderCreatorAnnotationGallery();
+        } finally {
+            saveBtn.disabled = false;
+        }
+    }
+
+    document.getElementById('save-shapes-png').addEventListener('click', () => {
+        runSaveMapPreview();
+    });
+
+    document.getElementById('map-snapshot-save-png-btn').addEventListener('click', () => {
+        restoreSelectedGalleryAnnotations();
+    });
+
+    document.getElementById('map-snapshot-download-png-btn').addEventListener('click', () => {
+        const entry = getGalleryEntryForShownPreview();
+        const pngUrl = entry && entry.previewPngUrl ? entry.previewPngUrl : mapSnapshotDataUrl;
+        if (!pngUrl) return;
+        const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
+        const filename = `map-annotations-${cleanUser}.png`;
+        (async () => {
+            try {
+                const res = await fetch(pngUrl, { credentials: 'include' });
+                if (!res.ok) return;
+                const blob = await res.blob();
+                if (blob.type === 'image/png') {
+                    const objectUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(objectUrl);
+                    return;
+                }
+                // If source is jpeg/webp preview, convert to PNG before download.
+                const img = await new Promise((resolve) => {
+                    const el = new Image();
+                    el.onload = () => resolve(el);
+                    el.onerror = () => resolve(null);
+                    el.src = URL.createObjectURL(blob);
+                });
+                if (!img) return;
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width || 1;
+                canvas.height = img.height || 1;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+                ctx.drawImage(img, 0, 0);
+                canvas.toBlob((pngBlob) => {
+                    if (!pngBlob) return;
+                    const objectUrl = URL.createObjectURL(pngBlob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(objectUrl);
+                }, 'image/png');
+            } catch (error) {
+                console.error('Failed to download PNG', error);
+            }
+        })();
+    });
+
+    document.getElementById('map-snapshot-download-json-btn').addEventListener('click', () => {
+        const entry = getGalleryEntryForShownPreview();
+        if (!entry || !entry.annotations) return;
+        const payload = {
+            id: entry.id || null,
+            title: entry.title || null,
+            userId: entry.userId || null,
+            userDisplayName: entry.userDisplayName || currentUser || null,
+            createdAt: entry.createdAt || null,
+            updatedAt: entry.updatedAt || null,
+            annotations: entry.annotations
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
+        link.download = `map-annotations-${cleanUser}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('map-snapshot-delete-btn').addEventListener('click', async () => {
+        await removePreviewFromGalleryById(selectedPreviewGalleryId);
+        const list = loadPreviewGallery();
+        selectedPreviewGalleryId = list.length ? list[list.length - 1].id : null;
+        syncWrapFromSelected();
+        renderCreatorAnnotationGallery();
+    });
+
+    document.getElementById('map-snapshot-preview-square').addEventListener('click', () => {
+        restoreSelectedGalleryAnnotations();
+    });
+
+    if (!map.loaded()) {
+        map.once('load', () => {
+            initCreatorPreviewGalleryFromStorage().catch(console.error);
+        });
+    }
+
+    // ----- Address search suggestions for start & destination (Mapbox Geocoding) -----
+    async function searchAddresses(query) {
+        const trimmed = (query || '').trim();
+        if (!trimmed) return [];
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}&limit=6`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data.features) ? data.features : [];
+    }
+
+    function setupAddressSearch(inputId, resultsId) {
+        const input = document.getElementById(inputId);
+        const resultsEl = document.getElementById(resultsId);
+        if (!input || !resultsEl) return;
+        let debounce = null;
+
+        function showSuggestions(features) {
+            resultsEl.innerHTML = '';
+            resultsEl.classList.remove('active');
+
+            // If no results, still show a hint so the user sees feedback
+            if (!features || features.length === 0) {
+                const hint = document.createElement('div');
+                hint.className = 'result-item result-item--hint';
+                hint.textContent = 'No results found. Try a more specific address.';
+                resultsEl.appendChild(hint);
+                resultsEl.classList.add('active');
+                return;
+            }
+
+            features.forEach((f, i) => {
+                const item = document.createElement('div');
+                item.className = 'result-item' + (i === 0 ? ' selected' : '');
+                const name = f.place_name || f.text || '';
+                item.innerHTML = `<div class="result-place">${f.text || ''}</div><div class="result-address">${name}</div>`;
+                item.dataset.placeName = name;
+                item.onclick = () => {
+                    input.value = item.dataset.placeName || '';
+                    resultsEl.classList.remove('active');
+                    resultsEl.innerHTML = '';
+                };
+                resultsEl.appendChild(item);
+            });
+            resultsEl.classList.add('active');
+        }
+
+        input.addEventListener('input', () => {
+            clearTimeout(debounce);
+            const q = input.value.trim();
+            if (!q) {
+                resultsEl.classList.remove('active');
+                resultsEl.innerHTML = '';
+                return;
+            }
+            debounce = setTimeout(async () => {
+                try {
+                    const features = await searchAddresses(q);
+                    showSuggestions(features);
+                } catch (e) {
+                    console.error('Search error', e);
+                    showSuggestions([]);
+                }
+            }, 250);
+        });
+
+        input.addEventListener('keydown', (e) => {
+            const selected = resultsEl.querySelector('.result-item.selected');
+            if (e.key === 'ArrowDown' && selected && selected.nextElementSibling) {
+                e.preventDefault();
+                selected.classList.remove('selected');
+                selected.nextElementSibling.classList.add('selected');
+            } else if (e.key === 'ArrowUp' && selected && selected.previousElementSibling) {
+                e.preventDefault();
+                selected.classList.remove('selected');
+                selected.previousElementSibling.classList.add('selected');
+            } else if (e.key === 'Enter' && selected) {
+                e.preventDefault();
+                input.value = selected.dataset.placeName || '';
+                resultsEl.classList.remove('active');
+                resultsEl.innerHTML = '';
+            }
+        });
+    }
+
+    setupAddressSearch('start', 'start-results');
+    setupAddressSearch('end', 'end-results');
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.address-wrap')) {
+            const sr = document.getElementById('start-results');
+            const er = document.getElementById('end-results');
+            if (sr) sr.classList.remove('active');
+            if (er) er.classList.remove('active');
+        }
+    });
+
+    // Geocoding helper – returns [lng, lat] or null if address not found
+    async function getCoords(address) {
+        const trimmed = (address || '').trim();
+        if (!trimmed) return null;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.features || data.features.length === 0) return null;
+        return data.features[0].center;
+    }
+
+    // Route: geocode whatever the user typed (or selected) in each box and visualize the route
+    async function runRouteVisualization(requireInputs) {
+        var startText = (document.getElementById('start').value || '').trim();
+        var endText = (document.getElementById('end').value || '').trim();
+
+        if (!startText || !endText) {
+            if (!requireInputs) return;
+            alert('Please type a starting address and a destination address.');
+            return;
+        }
+
+        var start = await getCoords(startText);
+        var end = await getCoords(endText);
+
+        if (!start) {
+            alert(currentLang === 'en' ? translations.en.errStart : translations.pt.errStart);
+            return;
+        }
+        if (!end) {
+            alert(currentLang === 'en' ? translations.en.errEnd : translations.pt.errEnd);
+            return;
+        }
+
+        var profile = getSelectedProfile();
+        var url = 'https://api.mapbox.com/directions/v5/mapbox/' + profile + '/' +
+            start[0] + ',' + start[1] + ';' + end[0] + ',' + end[1] +
+            '?geometries=geojson&access_token=' + mapboxgl.accessToken;
+
+        try {
+            var response = await fetch(url);
+            var data = await response.json();
+
+            if (data.routes && data.routes.length > 0) {
+                var route = data.routes[0].geometry;
+
+                removeRouteMarkers();
+                if (map.getLayer('route')) map.removeLayer('route');
+                if (map.getSource('route')) map.removeSource('route');
+
+                var startMarkerEl = document.createElement('div');
+                startMarkerEl.style.width = '12px';
+                startMarkerEl.style.height = '12px';
+                startMarkerEl.style.borderRadius = '50%';
+                startMarkerEl.style.background = '#fff';
+                startMarkerEl.style.border = '2px solid #000';
+                startMarkerEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.25)';
+                routeStartMarker = new mapboxgl.Marker({ element: startMarkerEl })
+                    .setLngLat(start)
+                    .addTo(map);
+
+                var endMarkerEl = document.createElement('div');
+                endMarkerEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="#3d3d3d" stroke="#1a1a1a" stroke-width="0.6" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
+                routeEndMarker = new mapboxgl.Marker({ element: endMarkerEl, anchor: 'bottom' })
+                    .setLngLat(end)
+                    .addTo(map);
+
+                map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route } });
+                map.addLayer({
+                    id: 'route',
+                    type: 'line',
+                    source: 'route',
+                    layout: { 'line-join': 'round', 'line-cap': 'round' },
+                    paint: { 'line-color': '#3d3d3d', 'line-width': 3, 'line-opacity': 0.55 }
+                });
+
+                var bounds = new mapboxgl.LngLatBounds();
+                route.coordinates.forEach(function (coord) { bounds.extend(coord); });
+                map.fitBounds(bounds, { padding: 50 });
+            } else {
+                alert(currentLang === 'en' ? translations.en.errNoRoute : translations.pt.errNoRoute);
+            }
+        } catch (err) {
+            console.error('Error fetching route:', err);
+            alert('Error fetching route. Please try again.');
+        }
+    }
+
+    document.getElementById('calc-route').onclick = async () => {
+        runRouteVisualization(true);
+    };
+</script>
+
+</body>
+</html>

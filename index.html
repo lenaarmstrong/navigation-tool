@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Creator</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Lato, sans-serif;
+            background: #f5f5f5;
+        }
+        .top-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 14px;
+            background: #ffffff;
+            border-bottom: 1px solid #ddd;
+        }
+        .top-nav a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 600;
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background: #fff;
+        }
+        .top-nav a.active {
+            background: #6A5ACD;
+            color: #fff;
+            border-color: #6A5ACD;
+        }
+        .frame-wrap {
+            height: calc(100vh - 53px);
+        }
+        .frame-wrap iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            display: block;
+            background: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="frame-wrap">
+        <iframe src="creator.html" title="Creator Tool"></iframe>
+    </div>
+</body>
+</html>
+
+

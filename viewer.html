@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .visualization-slot {
+            margin-top: 8px;
+            width: 100%;
+            min-height: 280px;
+            background: #d9d9d9;
+            border: 1px solid #c3c3c3;
+            border-radius: 8px;
+        }
+
+        .visualization-heading {
+            padding-top: 2rem;
+        }
+
+        .participant-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mini-squares {
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .mini-square {
+            width: 60px;
+            height: 60px;
+            background: #d9d9d9;
+            border: 1px solid #c3c3c3;
+            border-radius: 3px;
+            margin-top: 24px;
+        }
+
+        .mini-square.selected {
+            border: 2px solid #6A5ACD;
+        }
+
+        .mini-save-btn {
+            background: #6A5ACD;
+            color: #fff;
+            border: 1px solid #6A5ACD;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 8px;
+            width: 100px;
+        }
+
+        .saved-previews-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .saved-preview-tile {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #c3c3c3;
+            background: #f5f5f5;
+            flex-shrink: 0;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .saved-preview-tile.selected {
+            border-color: #6A5ACD;
+            box-shadow: 0 0 0 1px rgba(106, 90, 205, 0.35);
+        }
+
+        .saved-preview-tile img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+        }
+
+        .viewer-preview-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+            align-items: stretch;
+        }
+
+        .viewer-preview-toolbar[hidden] {
+            display: none !important;
+        }
+
+        .viewer-preview-toolbar-btn {
+            flex: 1 1 120px;
+            margin-bottom: 0;
+            padding: 8px;
+            box-sizing: border-box;
+            background: #ffffff;
+            color: #0d6efd;
+            border: 2px solid #0d6efd;
+            border-radius: 8px;
+            font-family: 'Lato', sans-serif;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .viewer-preview-toolbar-btn:hover {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+
+        .viewer-preview-toolbar-btn.viewer-preview-delete-btn {
+            color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .viewer-preview-toolbar-btn.viewer-preview-delete-btn:hover {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+
+        .viewer-map-container {
+            width: 100%;
+            height: 380px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #c3c3c3;
+            margin-bottom: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .viewer-map-container[hidden] {
+            display: none !important;
+        }
+
+        #viewer-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .saved-previews-empty {
+            color: #666;
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        .viewer-saved-preview-hint {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0 0 10px 0;
+            line-height: 1.35;
+            width: 100%;
+            flex-basis: 100%;
+        }
+
+        .saved-previews-gallery .viewer-saved-preview-hint {
+            margin-top: 0;
+        }
+
+        .viewer-user-group-title {
+            width: 100%;
+            margin: 8px 0 6px 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #3a3a55;
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="top-nav" aria-label="Page navigation">
+        <a href="viewer.html" class="active" id="nav-viewer-link">Viewer</a>
+        <a href="creator.html" id="nav-creator-link">Creator</a>
+    </nav>
+
+    <div class="top-bar">
+        <h1 id="header-text">Tell Your Navigation Stories on the Map</h1>
+        <button type="button" class="lang-btn" id="lang-btn" aria-label="Switch language">EN</button>
+    </div>
+
+    <main class="viewer-content">
+
+        <h2 class="visualization-heading" id="viewer-saved-previews-heading">Saved Map Previews</h2>
+        <div id="saved-previews-gallery" class="saved-previews-gallery" aria-label="Saved map previews from creator"></div>
+        <div id="viewer-preview-toolbar" class="viewer-preview-toolbar" hidden>
+            <button type="button" id="viewer-save-png-btn" class="viewer-preview-toolbar-btn">Preview</button>
+            <button type="button" id="viewer-download-png-btn" class="viewer-preview-toolbar-btn">Download PNG</button>
+            <button type="button" id="viewer-save-json-btn" class="viewer-preview-toolbar-btn">Download JSON</button>
+            <button type="button" id="viewer-show-map-btn" class="viewer-preview-toolbar-btn">Show on map</button>
+            <button type="button" id="viewer-delete-preview-btn" class="viewer-preview-toolbar-btn viewer-preview-delete-btn">Delete</button>
+        </div>
+        <div id="viewer-map-container" class="viewer-map-container" hidden>
+            <div id="viewer-map" role="application" aria-label="Map showing selected preview annotations"></div>
+        </div>
+        
+    </main>
+
+    <script>
+        document.querySelectorAll('.mini-square').forEach(square => {
+            square.addEventListener('click', () => {
+                square.classList.toggle('selected');
+            });
+        });
+
+        let viewerLang = localStorage.getItem('coDesignLang') === 'pt' ? 'pt' : 'en';
+
+        const viewerTranslations = {
+            en: {
+                pageTitle: 'Viewer',
+                navAria: 'Page navigation',
+                navViewer: 'Viewer',
+                navCreator: 'Creator',
+                langBtnAria: 'Switch language',
+                header: 'Tell Your Navigation Stories on the Map',
+                savedPreviewsHeading: 'Saved Maps',
+                galleryAria: 'Saved map previews from creator',
+                mapAria: 'Map showing selected preview annotations',
+                savePng: 'Preview',
+                downloadPng: 'Download PNG',
+                saveJson: 'Download JSON',
+                showMap: 'Show on map',
+                delete: 'Delete',
+                emptyGallery: 'No saved previews yet. Use Save on the Creator page to add previews here.',
+                hint: 'Click saved annotations to show them on the map, save them, or delete them.',
+                tileAriaLabel: 'Map preview',
+                loginNeeded: 'Open Creator and enter your name to view your saved previews.'
+            },
+            pt: {
+                pageTitle: 'Visualizador',
+                navAria: 'Navegação da página',
+                navViewer: 'Visualizador',
+                navCreator: 'Criador',
+                langBtnAria: 'Alternar idioma',
+                header: 'Compartilhe suas histórias de navegação no mapa',
+                savedPreviewsHeading: 'Mapas salvas',
+                galleryAria: 'Pré-visualizações do mapa salvas no Criador',
+                mapAria: 'Mapa com anotações das pré-visualizações selecionadas',
+                savePng: 'Visualização',
+                downloadPng: 'Baixar PNG',
+                saveJson: 'Baixar JSON',
+                showMap: 'Mostrar no mapa',
+                delete: 'Excluir',
+                emptyGallery: 'Nenhuma captura salva ainda. Use Salvar no Criador para adicionar pré-visualizações aqui.',
+                hint: 'Clique nas anotações salvas para mostrar no mapa, salvar, ou exluir.',
+                tileAriaLabel: 'Pré-visualização do mapa',
+                loginNeeded: 'Abra o Criador e informe seu nome para ver seus mapas salvos.'
+            }
+        };
+
+        function applyViewerLanguage() {
+            const t = viewerTranslations[viewerLang];
+            document.documentElement.lang = viewerLang === 'pt' ? 'pt' : 'en';
+            document.title = t.pageTitle;
+            const topNav = document.querySelector('.top-nav');
+            if (topNav) topNav.setAttribute('aria-label', t.navAria);
+            const navViewer = document.getElementById('nav-viewer-link');
+            const navCreator = document.getElementById('nav-creator-link');
+            if (navViewer) navViewer.textContent = t.navViewer;
+            if (navCreator) navCreator.textContent = t.navCreator;
+            const headerEl = document.getElementById('header-text');
+            if (headerEl) headerEl.textContent = t.header;
+            const savedHeading = document.getElementById('viewer-saved-previews-heading');
+            if (savedHeading) savedHeading.textContent = t.savedPreviewsHeading;
+            const gallery = document.getElementById('saved-previews-gallery');
+            if (gallery) gallery.setAttribute('aria-label', t.galleryAria);
+            const mapEl = document.getElementById('viewer-map');
+            if (mapEl) mapEl.setAttribute('aria-label', t.mapAria);
+            const langBtn = document.getElementById('lang-btn');
+            if (langBtn) {
+                langBtn.textContent = viewerLang === 'en' ? 'EN' : 'PT';
+                langBtn.setAttribute('aria-label', t.langBtnAria);
+            }
+            setViewerToolbarLabels();
+        }
+
+        document.getElementById('lang-btn').addEventListener('click', () => {
+            viewerLang = viewerLang === 'en' ? 'pt' : 'en';
+            localStorage.setItem('coDesignLang', viewerLang);
+            applyViewerLanguage();
+            renderSavedPreviewsFromCreator();
+        });
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoibGVuYWFybXMiLCJhIjoiY205N3V0aGw2MGJnMDJsb2tiNDB1czFzaiJ9.bTzeSaHAUueU3tJHFNXyAA';
+
+        const API_BASE = (() => {
+            const explicit = (typeof window !== 'undefined' && window.__API_BASE__) ? String(window.__API_BASE__).trim() : '';
+            if (explicit) return explicit.replace(/\/+$/, '');
+            const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+            // Local development default.
+            if (!host || host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8787';
+            // Production default (set your deployed backend URL here).
+            return 'https://YOUR_BACKEND_DOMAIN';
+        })();
+        const USER_NAME_KEY = 'coDesignUserName';
+        const ANNOTATION_COLORS = ['#43159e', '#335145', '#F7B32B', '#3066BE', '#8CBA80', '#88CCF1', '#a64b00'];
+
+        let viewerSelectedPreviewIds = new Set();
+        let viewerMap = null;
+        let viewerMapLayersReady = false;
+        let viewerMapContainerShown = false;
+        const viewerMapInitCallbacks = [];
+        let viewerPreviewGallery = [];
+
+        async function apiRequest(path, options) {
+            const res = await fetch(`${API_BASE}${path}`, {
+                credentials: 'include',
+                ...options
+            });
+            if (!res.ok) {
+                let message = `Request failed (${res.status})`;
+                try {
+                    const json = await res.json();
+                    if (json && json.error) message = json.error;
+                } catch (e) {
+                    // fallback
+                }
+                throw new Error(message);
+            }
+            return res.json();
+        }
+
+        function toAbsoluteApiUrl(url) {
+            if (!url || typeof url !== 'string') return url;
+            if (/^https?:\/\//i.test(url)) return url;
+            if (url.startsWith('/')) return `${API_BASE}${url}`;
+            return url;
+        }
+
+        function normalizePreviewEntry(entry) {
+            if (!entry || typeof entry !== 'object') return entry;
+            return {
+                ...entry,
+                dataUrl: toAbsoluteApiUrl(entry.dataUrl),
+                previewPngUrl: toAbsoluteApiUrl(entry.previewPngUrl)
+            };
+        }
+
+        function loadPreviewGallery() {
+            return Array.isArray(viewerPreviewGallery) ? viewerPreviewGallery : [];
+        }
+
+        async function refreshViewerGallery() {
+            const currentUserName = (localStorage.getItem(USER_NAME_KEY) || '').trim();
+            const userQuery = currentUserName ? `?userName=${encodeURIComponent(currentUserName)}` : '';
+            const payload = await apiRequest(`/api/previews${userQuery}`);
+            viewerPreviewGallery = Array.isArray(payload.previews) ? payload.previews.map(normalizePreviewEntry) : [];
+            return viewerPreviewGallery;
+        }
+
+        function getViewerSelectedEntries() {
+            const items = loadPreviewGallery();
+            return items.filter((item) => item && item.id && viewerSelectedPreviewIds.has(item.id));
+        }
+
+        function updateViewerToolbarVisibility() {
+            const toolbar = document.getElementById('viewer-preview-toolbar');
+            if (!toolbar) return;
+            if (getViewerSelectedEntries().length > 0) {
+                toolbar.removeAttribute('hidden');
+            } else {
+                toolbar.setAttribute('hidden', '');
+            }
+        }
+
+        function emptyFeatureCollection() {
+            return { type: 'FeatureCollection', features: [] };
+        }
+
+        function extendBoundsFromGeoJSON(bounds, gj) {
+            if (!gj || !Array.isArray(gj.features)) return;
+            gj.features.forEach((f) => {
+                const g = f.geometry;
+                if (!g) return;
+                if (g.type === 'Point') bounds.extend(g.coordinates);
+                else if (g.type === 'LineString' || g.type === 'MultiPoint') {
+                    g.coordinates.forEach((c) => bounds.extend(c));
+                } else if (g.type === 'Polygon') {
+                    g.coordinates.forEach((ring) => ring.forEach((c) => bounds.extend(c)));
+                } else if (g.type === 'MultiPolygon') {
+                    g.coordinates.forEach((poly) => poly.forEach((ring) => ring.forEach((c) => bounds.extend(c))));
+                } else if (g.type === 'MultiLineString') {
+                    g.coordinates.forEach((line) => line.forEach((c) => bounds.extend(c)));
+                }
+            });
+        }
+
+        function extendBoundsFromSnapshot(bounds, snap) {
+            if (!snap) return;
+            if (snap.draw) extendBoundsFromGeoJSON(bounds, snap.draw);
+            if (snap.circles) extendBoundsFromGeoJSON(bounds, snap.circles);
+            if (snap.text) extendBoundsFromGeoJSON(bounds, snap.text);
+        }
+
+        function clearViewerMapSources() {
+            if (!viewerMap || !viewerMapLayersReady) return;
+            const ann = viewerMap.getSource('annotations');
+            const circ = viewerMap.getSource('user-circles');
+            const txt = viewerMap.getSource('map-text');
+            if (ann) ann.setData(emptyFeatureCollection());
+            if (circ) circ.setData(emptyFeatureCollection());
+            if (txt) txt.setData(emptyFeatureCollection());
+        }
+
+        function mergeAnnotationSnapshots(entries) {
+            const drawFeats = [];
+            const circleFeats = [];
+            const textFeats = [];
+            entries.forEach((entry) => {
+                const snap = entry && entry.annotations ? entry.annotations : {};
+                const d = snap.draw;
+                if (d && Array.isArray(d.features)) {
+                    d.features.forEach((f) => drawFeats.push(JSON.parse(JSON.stringify(f))));
+                }
+                const c = snap.circles;
+                if (c && Array.isArray(c.features)) {
+                    c.features.forEach((f) => circleFeats.push(JSON.parse(JSON.stringify(f))));
+                }
+                const t = snap.text;
+                if (t && Array.isArray(t.features)) {
+                    t.features.forEach((f) => textFeats.push(JSON.parse(JSON.stringify(f))));
+                }
+            });
+            return {
+                draw: { type: 'FeatureCollection', features: drawFeats },
+                circles: { type: 'FeatureCollection', features: circleFeats },
+                text: { type: 'FeatureCollection', features: textFeats }
+            };
+        }
+
+        function applyMergedSnapshotsToViewerMap(entries) {
+            if (!viewerMap || !viewerMapLayersReady) return;
+            const list = Array.isArray(entries) ? entries : [];
+            const merged = mergeAnnotationSnapshots(list);
+            viewerMap.getSource('annotations').setData(merged.draw);
+            viewerMap.getSource('user-circles').setData(merged.circles);
+            viewerMap.getSource('map-text').setData(merged.text);
+            const b = new mapboxgl.LngLatBounds();
+            extendBoundsFromSnapshot(b, merged);
+            if (!b.isEmpty()) {
+                viewerMap.fitBounds(b, { padding: 48, maxZoom: 16, duration: 0 });
+            } else {
+                viewerMap.jumpTo({ center: [-43.23, -22.93], zoom: 11 });
+            }
+        }
+
+        function ensureViewerMap(callback) {
+            if (viewerMap && viewerMapLayersReady) {
+                if (callback) callback();
+                return;
+            }
+            if (callback) viewerMapInitCallbacks.push(callback);
+            if (viewerMap) return;
+            viewerMap = new mapboxgl.Map({
+                container: 'viewer-map',
+                style: 'mapbox://styles/mapbox/light-v11',
+                center: [-43.23, -22.93],
+                zoom: 11
+            });
+            viewerMap.once('load', () => {
+                    viewerMap.addSource('annotations', { type: 'geojson', data: emptyFeatureCollection() });
+                    viewerMap.addLayer({
+                        id: 'annotations-fill',
+                        type: 'fill',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'Polygon'],
+                        paint: {
+                            'fill-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'fill-opacity': 0.6
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'annotations-line',
+                        type: 'line',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'Polygon'],
+                        paint: {
+                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'line-width': 2
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'annotations-linestring',
+                        type: 'line',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'LineString'],
+                        paint: {
+                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'line-width': 4
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'annotations-point',
+                        type: 'circle',
+                        source: 'annotations',
+                        filter: ['==', ['geometry-type'], 'Point'],
+                        paint: {
+                            'circle-radius': 8,
+                            'circle-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'circle-stroke-width': 2,
+                            'circle-stroke-color': '#fff'
+                        }
+                    });
+                    viewerMap.addSource('user-circles', { type: 'geojson', data: emptyFeatureCollection() });
+                    viewerMap.addLayer({
+                        id: 'user-circles-fill',
+                        type: 'fill',
+                        source: 'user-circles',
+                        paint: {
+                            'fill-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                            'fill-opacity': 0.2
+                        }
+                    });
+                    viewerMap.addLayer({
+                        id: 'user-circles-line',
+                        type: 'line',
+                        source: 'user-circles',
+                        paint: {
+                            'line-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                            'line-width': 1
+                        }
+                    });
+                    viewerMap.addSource('map-text', { type: 'geojson', data: emptyFeatureCollection() });
+                    viewerMap.addLayer({
+                        id: 'map-text-layer',
+                        type: 'symbol',
+                        source: 'map-text',
+                        layout: {
+                            'text-field': ['get', 'text'],
+                            'text-size': 15,
+                            'text-font': ['Lato Regular', 'Arial Unicode MS Regular'],
+                            'text-offset': [0, 0],
+                            'text-anchor': 'center',
+                            'text-allow-overlap': true
+                        },
+                        paint: {
+                            'text-color': '#111111',
+                            'text-halo-color': '#ffffff',
+                            'text-halo-width': 1.5
+                        }
+                    });
+                    ['annotations-fill', 'annotations-line', 'annotations-linestring', 'annotations-point', 'user-circles-fill', 'user-circles-line', 'map-text-layer'].forEach((id) => {
+                        if (viewerMap.getLayer(id)) viewerMap.moveLayer(id);
+                    });
+                    viewerMapLayersReady = true;
+                    const cbs = viewerMapInitCallbacks.slice();
+                    viewerMapInitCallbacks.length = 0;
+                    cbs.forEach((cb) => cb());
+                });
+        }
+
+
+        function setViewerToolbarLabels() {
+            const t = viewerTranslations[viewerLang];
+            const saveBtn = document.getElementById('viewer-save-png-btn');
+            const downloadPngBtn = document.getElementById('viewer-download-png-btn');
+            const saveJsonBtn = document.getElementById('viewer-save-json-btn');
+            const showBtn = document.getElementById('viewer-show-map-btn');
+            const delBtn = document.getElementById('viewer-delete-preview-btn');
+            if (saveBtn) saveBtn.textContent = t.savePng;
+            if (downloadPngBtn) downloadPngBtn.textContent = t.downloadPng;
+            if (saveJsonBtn) saveJsonBtn.textContent = t.saveJson;
+            if (showBtn) showBtn.textContent = t.showMap;
+            if (delBtn) delBtn.textContent = t.delete;
+        }
+
+        function renderSavedPreviewsFromCreator() {
+            const items = loadPreviewGallery();
+            const container = document.getElementById('saved-previews-gallery');
+            if (!container) return;
+            container.innerHTML = '';
+            if (items.length === 0) {
+                viewerSelectedPreviewIds = new Set();
+                const p = document.createElement('p');
+                p.className = 'saved-previews-empty';
+                p.textContent = viewerTranslations[viewerLang].emptyGallery;
+                container.appendChild(p);
+                updateViewerToolbarVisibility();
+                const mapWrap = document.getElementById('viewer-map-container');
+                if (mapWrap) mapWrap.setAttribute('hidden', '');
+                viewerMapContainerShown = false;
+                clearViewerMapSources();
+                return;
+            }
+            const validIds = new Set(items.map((x) => x && x.id).filter(Boolean));
+            viewerSelectedPreviewIds = new Set([...viewerSelectedPreviewIds].filter((id) => validIds.has(id)));
+            const hint = document.createElement('p');
+            hint.className = 'viewer-saved-preview-hint';
+            hint.textContent = viewerTranslations[viewerLang].hint;
+            container.appendChild(hint);
+
+            const groups = new Map();
+            const order = [];
+            items.forEach((entry) => {
+                if (!entry || !entry.dataUrl) return;
+                const userName = (entry.userDisplayName || 'Unknown user').trim() || 'Unknown user';
+                if (!groups.has(userName)) {
+                    groups.set(userName, []);
+                    order.push(userName);
+                }
+                groups.get(userName).push(entry);
+            });
+
+            order.forEach((userName) => {
+                const header = document.createElement('p');
+                header.className = 'viewer-user-group-title';
+                header.textContent = userName;
+                container.appendChild(header);
+
+                const userItems = groups.get(userName) || [];
+                userItems.forEach((entry) => {
+                    const tile = document.createElement('div');
+                    tile.className = 'saved-preview-tile';
+                    const isSelected = entry.id && viewerSelectedPreviewIds.has(entry.id);
+                    if (isSelected) tile.classList.add('selected');
+                    tile.setAttribute('role', 'checkbox');
+                    tile.setAttribute('tabindex', '0');
+                    tile.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+                    tile.setAttribute('aria-label', viewerTranslations[viewerLang].tileAriaLabel);
+                    const img = document.createElement('img');
+                    img.src = entry.dataUrl;
+                    img.alt = '';
+                    tile.appendChild(img);
+                    function toggleSelection() {
+                        if (viewerSelectedPreviewIds.has(entry.id)) viewerSelectedPreviewIds.delete(entry.id);
+                        else viewerSelectedPreviewIds.add(entry.id);
+                        renderSavedPreviewsFromCreator();
+                        updateViewerToolbarVisibility();
+                        if (viewerMapLayersReady && viewerMapContainerShown) {
+                            applyMergedSnapshotsToViewerMap(getViewerSelectedEntries());
+                        }
+                    }
+                    tile.addEventListener('click', toggleSelection);
+                    tile.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleSelection();
+                        }
+                    });
+                    container.appendChild(tile);
+                });
+            });
+            updateViewerToolbarVisibility();
+        }
+
+
+        applyViewerLanguage();
+        renderSavedPreviewsFromCreator();
+
+        async function forceDownloadPng(url, filename) {
+            const response = await fetch(url, { credentials: 'include' });
+            if (!response.ok) throw new Error(`Failed to download PNG (${response.status})`);
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(objectUrl);
+        }
+
+        document.getElementById('viewer-save-png-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            entries.forEach((e, i) => {
+                const downloadUrl = e.previewPngUrl || e.dataUrl;
+                if (!downloadUrl) return;
+                setTimeout(() => {
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
+                    a.download = 'map-annotations-snapshot-' + suffix + '.png';
+                    a.click();
+                }, i * 200);
+            });
+        });
+
+        document.getElementById('viewer-download-png-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            entries.forEach((e, i) => {
+                const downloadUrl = e.previewPngUrl || e.dataUrl;
+                if (!downloadUrl) return;
+                setTimeout(async () => {
+                    const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
+                    const filename = 'map-annotations-snapshot-' + suffix + '.png';
+                    try {
+                        await forceDownloadPng(downloadUrl, filename);
+                    } catch (error) {
+                        console.error('PNG download failed', error);
+                    }
+                }, i * 200);
+            });
+        });
+
+        document.getElementById('viewer-save-json-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            const payload = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                entries: entries.map((entry) => ({
+                    id: entry.id || null,
+                    title: entry.title || null,
+                    userId: entry.userId || null,
+                    userDisplayName: entry.userDisplayName || null,
+                    createdAt: entry.createdAt || null,
+                    updatedAt: entry.updatedAt || null,
+                    annotations: entry.annotations || null
+                }))
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const suffix = entries.length > 1 ? `${entries.length}-selected` : 'selected';
+            a.download = `map-previews-${suffix}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+
+        document.getElementById('viewer-show-map-btn').addEventListener('click', () => {
+            const entries = getViewerSelectedEntries();
+            if (!entries.length) return;
+            const mapWrap = document.getElementById('viewer-map-container');
+            if (mapWrap) {
+                mapWrap.removeAttribute('hidden');
+                viewerMapContainerShown = true;
+            }
+            ensureViewerMap(() => {
+                applyMergedSnapshotsToViewerMap(entries);
+                if (viewerMap) viewerMap.resize();
+            });
+        });
+
+
+        document.getElementById('viewer-delete-preview-btn').addEventListener('click', async () => {
+            const toRemove = new Set(getViewerSelectedEntries().map((e) => e.id));
+            if (!toRemove.size) return;
+            await Promise.all(
+                Array.from(toRemove).map((id) =>
+                    apiRequest(`/api/previews/${encodeURIComponent(id)}`, { method: 'DELETE' })
+                )
+            );
+            await refreshViewerGallery();
+            viewerSelectedPreviewIds = new Set();
+            clearViewerMapSources();
+            renderSavedPreviewsFromCreator();
+            if (viewerMap) viewerMap.resize();
+        });
+
+        async function initViewerData() {
+            await refreshViewerGallery();
+            renderSavedPreviewsFromCreator();
+        }
+
+        initViewerData().catch(console.error);
+    </script>
+
+</body>
+</html>
