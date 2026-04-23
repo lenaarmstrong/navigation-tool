@@ -1752,34 +1752,31 @@
         const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
         const filename = `map-annotations-${cleanUser}.png`;
         (async () => {
-            const directDownload = (url) => {
+            const triggerObjectUrlDownload = (href) => {
                 const link = document.createElement('a');
-                link.href = url;
+                link.href = href;
                 link.download = filename;
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
             };
             try {
-                const pngUrl = entry.previewPngUrl || entry.dataUrl || mapSnapshotDataUrl;
+                const pngUrl = await buildLegendSnapshotFromEntry(entry);
                 if (!pngUrl) return;
-                if (pngUrl.startsWith('data:image/png')) {
-                    directDownload(pngUrl);
-                    return;
+                let blob = null;
+                if (pngUrl.startsWith('data:image/')) {
+                    blob = await (await fetch(pngUrl)).blob();
+                } else {
+                    const res = await fetch(pngUrl, { credentials: 'include' });
+                    if (!res.ok) return;
+                    blob = await res.blob();
                 }
-                const res = await fetch(pngUrl, { credentials: 'include' });
-                if (!res.ok) {
-                    directDownload(pngUrl);
-                    return;
-                }
-                const blob = await res.blob();
+                if (!blob) return;
                 const objectUrl = URL.createObjectURL(blob);
-                directDownload(objectUrl);
+                triggerObjectUrlDownload(objectUrl);
                 URL.revokeObjectURL(objectUrl);
             } catch (error) {
                 console.error('Failed to download PNG', error);
-                const fallbackUrl = entry.previewPngUrl || entry.dataUrl || mapSnapshotDataUrl;
-                if (fallbackUrl) directDownload(fallbackUrl);
             }
         })();
     });
