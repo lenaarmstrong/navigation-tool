@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import express from 'express';
 import session from 'express-session';
 import cors from 'cors';
-import { getDb } from './db/index.js';
 import sessionRoutes from './routes/session.js';
 import previewRoutes from './routes/previews.js';
 import { getDataDir } from './config/paths.js';
@@ -98,23 +97,20 @@ const uploadsRoot = getDataDir();
 app.use('/uploads', express.static(uploadsRoot));
 
 async function start(): Promise<void> {
-  const db = await getDb();
   const backupStatus = getDriveBackupStatus();
   app.listen(port, () => {
     console.log(`Server listening on http://localhost:${port}`);
     console.log(`Using data directory: ${uploadsRoot}`);
     if (!backupStatus.configured) {
-      console.warn(
-        'Google Drive backup is not configured. Set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in server/.env'
-      );
+      console.warn('Drive backup is disabled in Supabase storage mode.');
     }
   });
   setInterval(() => {
-    processDriveBackupQueue(db).catch((error) => {
+    processDriveBackupQueue().catch((error) => {
       console.error('Drive backup queue failed', error);
     });
   }, 60_000);
-  processDriveBackupQueue(db).catch((error) => {
+  processDriveBackupQueue().catch((error) => {
     console.error('Initial Drive backup queue failed', error);
   });
 }

@@ -21,17 +21,24 @@ Deploy the `server/` app and set these env vars:
 
 - `PORT=8787` (or host-provided port)
 - `NODE_ENV=production`
-- `DATA_DIR=/var/data/co-design` (or your host's persistent disk mount path)
 - `SESSION_SECRET=<secure-random-string>`
 - `CORS_ORIGINS=https://lenaarmstrong.github.io,http://localhost:5500,http://127.0.0.1:5500`
 - `SESSION_COOKIE_SECURE=true` (recommended for HTTPS production)
-- `GOOGLE_DRIVE_FOLDER_ID=<your-folder-id>`
-- `GOOGLE_SERVICE_ACCOUNT_EMAIL=<service-account-email>`
-- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=<private-key-with-\n-escapes>`
+- `SUPABASE_URL=https://<project-ref>.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY=<service-role-key>`
+- `SUPABASE_PREVIEWS_BUCKET=previews` (or your chosen bucket name)
 
-Important: `DATA_DIR` must point to persistent storage on your hosting provider. If you leave it unset, the server uses `server/data`, which may be ephemeral on some platforms.
+## 3) Configure Supabase (one-time)
 
-## 3) Set Production Backend URL
+1. Create a Supabase project.
+2. In Supabase SQL Editor, run `server/supabase/schema.sql`.
+3. Create a Storage bucket named `previews` (or match `SUPABASE_PREVIEWS_BUCKET`).
+4. Make that bucket public (Storage -> bucket settings -> Public).
+5. In Supabase Project Settings -> API, copy:
+   - Project URL -> `SUPABASE_URL`
+   - Service role key -> `SUPABASE_SERVICE_ROLE_KEY`
+
+## 4) Set Production Backend URL
 
 `creator.html` and `viewer.html` now auto-select API base:
 
@@ -40,7 +47,7 @@ Important: `DATA_DIR` must point to persistent storage on your hosting provider.
 
 Before production, replace `https://YOUR_BACKEND_DOMAIN` in both files with your real backend URL.
 
-## 4) Optional Runtime Override
+## 5) Optional Runtime Override
 
 Use `config.js` in repo root to set runtime API base for both `creator.html` and `viewer.html`:
 
@@ -50,10 +57,10 @@ window.__API_BASE__ = 'https://your-backend-domain.com';
 
 Both pages load `config.js` automatically, so you only set it once.
 
-## 5) Verify
+## 6) Verify
 
 1. Open GitHub Pages URL.
 2. Enter name/login on Creator.
 3. Save preview.
 4. Open Viewer and confirm previews load.
-5. Confirm backend logs and (if enabled) Drive backup status.
+5. Redeploy backend and confirm previews are still available.

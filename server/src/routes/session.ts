@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { getDb } from '../db/index.js';
+import { supabase } from '../supabase/client.js';
 
 const router = Router();
 
@@ -16,28 +16,36 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Name must be at least 2 characters.' });
   }
 
-  const db = await getDb();
   const now = new Date().toISOString();
-  const existing = await db.get<{ id: string; display_name: string }>(
-    'SELECT id, display_name FROM users WHERE display_name_normalized = ?',
-    normalized
-  );
+  const { data: existing, error: existingError } = await supabase
+    .from('users')
+    .select('id, display_name')
+    .eq('display_name_normalized', normalized)
+    .maybeSingle();
+  if (existingError) {
+    return res.status(500).json({ error: existingError.message });
+  }
 
   let userId = existing?.id;
   let userName = existing?.display_name || displayName;
 
   if (!existing) {
     userId = uuidv4();
-    await db.run(
-      'INSERT INTO users (id, display_name, display_name_normalized, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?)',
-      userId,
-      displayName,
-      normalized,
-      now,
-      now
-    );
+    const { error: insertError } = await supabase.from('users').insert({
+      id: userId,
+      display_name: displayName,
+      display_name_normalized: normalized,
+      created_at: now,
+      last_seen_at: now
+    });
+    if (insertError) {
+      return res.status(500).json({ error: insertError.message });
+    }
   } else {
-    await db.run('UPDATE users SET last_seen_at = ? WHERE id = ?', now, userId);
+    const { error: updateError } = await supabase.from('users').update({ last_seen_at: now }).eq('id', userId);
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message });
+    }
   }
 
   req.session.userId = userId;
