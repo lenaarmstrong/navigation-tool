@@ -240,7 +240,10 @@
                 emptyGallery: 'No saved previews yet. Use Save on the Creator page to add previews here.',
                 hint: 'Click saved annotations to show them on the map, save them, or delete them.',
                 tileAriaLabel: 'Map preview',
-                loginNeeded: 'Open Creator and enter your name to view your saved previews.'
+                loginNeeded: 'Open Creator and enter your name to view your saved previews.',
+                mapSavedByPrefix: 'By: ',
+                exportPngRouteFrom: 'Starting address:',
+                exportPngRouteTo: 'Destination address:'
             },
             pt: {
                 pageTitle: 'Visualizador',
@@ -260,7 +263,10 @@
                 emptyGallery: 'Nenhuma captura salva ainda. Use Salvar no Criador para adicionar pré-visualizações aqui.',
                 hint: 'Clique nas anotações salvas para mostrar no mapa, salvar, ou exluir.',
                 tileAriaLabel: 'Pré-visualização do mapa',
-                loginNeeded: 'Abra o Criador e informe seu nome para ver seus mapas salvos.'
+                loginNeeded: 'Abra o Criador e informe seu nome para ver seus mapas salvos.',
+                mapSavedByPrefix: 'Por: ',
+                exportPngRouteFrom: 'Endereço de partida:',
+                exportPngRouteTo: 'Endereço de destino:'
             }
         };
 
@@ -309,7 +315,8 @@
             return 'https://YOUR_BACKEND_DOMAIN';
         })();
         const USER_NAME_KEY = 'coDesignUserName';
-        const ANNOTATION_COLORS = ['#43159e', '#335145', '#F7B32B', '#3066BE', '#8CBA80', '#88CCF1', '#a64b00'];
+        const ANNOTATION_COLORS = ['#43159e', '#F7B32B', '#ff4d6d', '#3066BE', '#335145', '#a64b00', '#88CCF1', '#8CBA80'];
+        const DEFAULT_MAP_STYLE_FOR_EXPORT = 'mapbox://styles/mapbox/light-v11';
 
         let viewerSelectedPreviewIds = new Set();
         let viewerMap = null;
@@ -479,7 +486,7 @@
                         source: 'annotations',
                         filter: ['==', ['geometry-type'], 'Polygon'],
                         paint: {
-                            'fill-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'fill-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
                             'fill-opacity': 0.6
                         }
                     });
@@ -489,7 +496,7 @@
                         source: 'annotations',
                         filter: ['==', ['geometry-type'], 'Polygon'],
                         paint: {
-                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
                             'line-width': 2
                         }
                     });
@@ -499,7 +506,7 @@
                         source: 'annotations',
                         filter: ['==', ['geometry-type'], 'LineString'],
                         paint: {
-                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
                             'line-width': 4
                         }
                     });
@@ -510,7 +517,7 @@
                         filter: ['==', ['geometry-type'], 'Point'],
                         paint: {
                             'circle-radius': 8,
-                            'circle-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], '#95a5a6'],
+                            'circle-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
                             'circle-stroke-width': 2,
                             'circle-stroke-color': '#fff'
                         }
@@ -661,6 +668,232 @@
         applyViewerLanguage();
         renderSavedPreviewsFromCreator();
 
+        function canvasWrapTextLines(ctx, text, maxWidth) {
+            const raw = String(text || '').trim();
+            if (!raw) return [];
+            const words = raw.split(/\s+/);
+            const lines = [];
+            let line = '';
+            words.forEach((w) => {
+                const test = line ? `${line} ${w}` : w;
+                if (ctx.measureText(test).width <= maxWidth) {
+                    line = test;
+                    return;
+                }
+                if (line) {
+                    lines.push(line);
+                    line = '';
+                }
+                if (ctx.measureText(w).width <= maxWidth) {
+                    line = w;
+                    return;
+                }
+                let partial = '';
+                for (let i = 0; i < w.length; i++) {
+                    const t2 = partial + w[i];
+                    if (ctx.measureText(t2).width <= maxWidth) {
+                        partial = t2;
+                    } else {
+                        if (partial) {
+                            lines.push(partial);
+                            partial = w[i];
+                        } else {
+                            lines.push(w[i]);
+                        }
+                    }
+                }
+                line = partial;
+            });
+            if (line) lines.push(line);
+            return lines;
+        }
+
+        async function viewerToSafeImageUrl(url) {
+            if (!url || typeof url !== 'string') return url;
+            if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+            const attempts = [{ mode: 'cors' }, { credentials: 'include', mode: 'cors' }];
+            for (let a = 0; a < attempts.length; a++) {
+                try {
+                    const res = await fetch(url, attempts[a]);
+                    if (!res.ok) continue;
+                    const blob = await res.blob();
+                    const dataUrl = await new Promise((resolve) => {
+                        const fr = new FileReader();
+                        fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : url);
+                        fr.onerror = () => resolve(url);
+                        fr.readAsDataURL(blob);
+                    });
+                    return dataUrl;
+                } catch {
+                    /* try next */
+                }
+            }
+            return url;
+        }
+
+        function buildViewerJsonExportForEntry(entry) {
+            const a = entry && entry.annotations ? entry.annotations : {};
+            const author = ((entry && entry.userDisplayName) || (a && a.userDisplayName) || '').trim() || null;
+            const mapObj = a.map && typeof a.map === 'object'
+                ? { style: a.map.style || DEFAULT_MAP_STYLE_FOR_EXPORT, camera: a.map.camera != null ? a.map.camera : null }
+                : { style: DEFAULT_MAP_STYLE_FOR_EXPORT, camera: null };
+            return {
+                schemaVersion: 1,
+                exportedAt: new Date().toISOString(),
+                map: mapObj,
+                route: a.route != null ? a.route : null,
+                startAddress: a.startAddress != null ? a.startAddress : null,
+                endAddress: a.endAddress != null ? a.endAddress : null,
+                author,
+                legend: a.legend || null,
+                annotationColors: Array.isArray(a.annotationColors) && a.annotationColors.length
+                    ? a.annotationColors.slice()
+                    : ANNOTATION_COLORS.slice(),
+                draw: a.draw,
+                circles: a.circles,
+                text: a.text,
+                nextTextId: a.nextTextId,
+                savedPreviewId: (entry && entry.id) || null,
+                savedPreviewTitle: (entry && entry.title) || null
+            };
+        }
+
+        async function buildViewerMapSnapshotExportPngDataUrl(entry, mapDataUrl) {
+            if (!mapDataUrl) return null;
+            const t = viewerTranslations[viewerLang] || viewerTranslations.en;
+            const ann = entry && entry.annotations ? entry.annotations : {};
+            const legendItemsRaw = (ann.legend && Array.isArray(ann.legend.items)) ? ann.legend.items : [];
+            const legendRows = legendItemsRaw
+                .map((item, i) => ({
+                    color: (item && item.color) || ANNOTATION_COLORS[i] || '#95a5a6',
+                    text: (item && typeof item.label === 'string') ? item.label.trim() : ''
+                }))
+                .filter((row) => row.text);
+            const legendTitle = (ann.legend && ann.legend.title)
+                ? String(ann.legend.title).trim()
+                : (viewerLang === 'pt' ? 'Legenda' : 'Legend');
+            const authorName = ((entry && entry.userDisplayName) || (ann && ann.userDisplayName) || '').trim();
+            const userNameLabel = authorName ? `${t.mapSavedByPrefix}${authorName}` : '';
+            const startTrim = (typeof ann.startAddress === 'string' ? ann.startAddress : '').trim();
+            const endTrim = (typeof ann.endAddress === 'string' ? ann.endAddress : '').trim();
+
+            const mapImage = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = mapDataUrl;
+            });
+            if (!mapImage) return null;
+
+            const mapW = mapImage.naturalWidth || mapImage.width || 1024;
+            const mapH = mapImage.naturalHeight || mapImage.height || 1024;
+
+            const meas = document.createElement('canvas').getContext('2d');
+            if (!meas) return mapDataUrl;
+            meas.font = '13px Lato, Arial, sans-serif';
+            const addrTextMaxW = Math.max(120, mapW - 24);
+            const addrLineH = 17;
+            let addressFooterH = 0;
+            if (startTrim || endTrim) {
+                addressFooterH += 12;
+                if (startTrim) {
+                    addressFooterH += 14 + canvasWrapTextLines(meas, startTrim, addrTextMaxW).length * addrLineH + 6;
+                }
+                if (endTrim) {
+                    addressFooterH += 14 + canvasWrapTextLines(meas, endTrim, addrTextMaxW).length * addrLineH;
+                }
+                addressFooterH += 10;
+            }
+            const showLegendColumn = legendRows.length > 0 || !!userNameLabel;
+            if (!showLegendColumn && !addressFooterH) return mapDataUrl;
+
+            const pad = 20;
+            const swatchSize = 16;
+            const rowGap = 10;
+            const titleGap = 14;
+            const legendWidth = 280;
+            const titleHeight = 24;
+            const userGap = userNameLabel ? 20 : 0;
+            const legendSwatchBlock = legendRows.length
+                ? titleGap + legendRows.length * (swatchSize + rowGap) - rowGap
+                : 0;
+            const legendHeight = pad + titleHeight + userGap + legendSwatchBlock + pad;
+            const leftColumnH = pad + mapH + addressFooterH + pad;
+            const outW = showLegendColumn ? mapW + legendWidth + pad * 2 : mapW + pad * 2;
+            const outH = Math.max(leftColumnH, showLegendColumn ? legendHeight : 0);
+
+            const out = document.createElement('canvas');
+            out.width = outW;
+            out.height = outH;
+            const ctx = out.getContext('2d');
+            if (!ctx) return mapDataUrl;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, outW, outH);
+            ctx.drawImage(mapImage, pad, pad, mapW, mapH);
+
+            if (startTrim || endTrim) {
+                let ay = pad + mapH + 12;
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = '#222222';
+                if (startTrim) {
+                    ctx.font = '700 12px Lato, Arial, sans-serif';
+                    ctx.fillText(t.exportPngRouteFrom, pad + 12, ay);
+                    ay += 14;
+                    ctx.font = '13px Lato, Arial, sans-serif';
+                    canvasWrapTextLines(ctx, startTrim, addrTextMaxW).forEach((ln) => {
+                        ctx.fillText(ln, pad + 12, ay);
+                        ay += addrLineH;
+                    });
+                    ay += 6;
+                }
+                if (endTrim) {
+                    ctx.font = '700 12px Lato, Arial, sans-serif';
+                    ctx.fillText(t.exportPngRouteTo, pad + 12, ay);
+                    ay += 14;
+                    ctx.font = '13px Lato, Arial, sans-serif';
+                    canvasWrapTextLines(ctx, endTrim, addrTextMaxW).forEach((ln) => {
+                        ctx.fillText(ln, pad + 12, ay);
+                        ay += addrLineH;
+                    });
+                }
+            }
+
+            if (showLegendColumn) {
+                const legendX = pad + mapW + pad;
+                let y = pad + titleHeight;
+                ctx.fillStyle = '#222222';
+                ctx.font = '700 20px Lato, Arial, sans-serif';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillText(legendTitle || 'Legend', legendX, y);
+                if (userNameLabel) {
+                    y += 20;
+                    ctx.fillStyle = '#555555';
+                    ctx.font = '600 14px Lato, Arial, sans-serif';
+                    ctx.fillText(userNameLabel, legendX, y);
+                }
+                y += legendRows.length ? titleGap : 0;
+                ctx.font = '15px Lato, Arial, sans-serif';
+                legendRows.forEach((row) => {
+                    y += swatchSize;
+                    ctx.fillStyle = row.color || '#95a5a6';
+                    ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+                    ctx.fillStyle = '#333333';
+                    ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
+                    y += rowGap;
+                });
+            }
+
+            try {
+                return out.toDataURL('image/png');
+            } catch {
+                return mapDataUrl;
+            }
+        }
+
         async function forceDownloadPng(url, filename) {
             const triggerDownload = (href) => {
                 const a = document.createElement('a');
@@ -670,135 +903,70 @@
                 a.click();
                 a.remove();
             };
-            try {
-                const response = await fetch(url, { credentials: 'include' });
-                if (!response.ok) {
-                    triggerDownload(url);
-                    return;
-                }
-                const blob = await response.blob();
-                const objectUrl = URL.createObjectURL(blob);
-                triggerDownload(objectUrl);
-                URL.revokeObjectURL(objectUrl);
-            } catch {
+            if (typeof url === 'string' && url.startsWith('data:image/')) {
                 triggerDownload(url);
+                return;
             }
+            const attempts = [{ mode: 'cors' }, { credentials: 'include', mode: 'cors' }];
+            for (let i = 0; i < attempts.length; i++) {
+                try {
+                    const response = await fetch(url, attempts[i]);
+                    if (!response.ok) continue;
+                    const blob = await response.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+                    triggerDownload(objectUrl);
+                    URL.revokeObjectURL(objectUrl);
+                    return;
+                } catch {
+                    /* try next */
+                }
+            }
+            triggerDownload(url);
         }
 
-        async function buildViewerLegendSnapshotDataUrl(entry) {
-            if (!entry) return null;
-            const sourceUrl = entry.previewPngUrl || entry.dataUrl;
-            if (!sourceUrl) return null;
-            async function toSafeImageUrl(url) {
-                if (!url || typeof url !== 'string') return url;
-                if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+        async function downloadViewerEntryPng(entry, indexInBatch, batchSize) {
+            const cleanUser = ((entry.userDisplayName || 'user').replace(/[^a-zA-Z0-9_-]/g, '_')).slice(0, 24);
+            const idPart = entry.id ? String(entry.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 12) : String(indexInBatch + 1);
+            const filename = batchSize > 1
+                ? `map-annotations-${cleanUser}-${idPart}.png`
+                : `map-annotations-${cleanUser}.png`;
+
+            if (entry.previewPngUrl) {
+                await forceDownloadPng(entry.previewPngUrl, filename);
+                return;
+            }
+            const sourceUrl = entry.dataUrl;
+            if (!sourceUrl) return;
+            const safe = await viewerToSafeImageUrl(sourceUrl);
+            const pngUrl = (await buildViewerMapSnapshotExportPngDataUrl(entry, safe)) || safe;
+            let blob = null;
+            if (pngUrl.startsWith('data:image/')) {
+                blob = await (await fetch(pngUrl)).blob();
+            } else {
                 try {
-                    const res = await fetch(url, { credentials: 'include' });
-                    if (!res.ok) return url;
-                    const blob = await res.blob();
-                    return await new Promise((resolve) => {
-                        const fr = new FileReader();
-                        fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : url);
-                        fr.onerror = () => resolve(url);
-                        fr.readAsDataURL(blob);
-                    });
+                    const res = await fetch(pngUrl, { mode: 'cors' });
+                    if (res.ok) blob = await res.blob();
                 } catch {
-                    return url;
+                    /* ignore */
                 }
             }
-            const safeSourceUrl = await toSafeImageUrl(sourceUrl);
-            const mapImage = await new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => resolve(null);
-                img.src = safeSourceUrl;
-            });
-            if (!mapImage) return safeSourceUrl;
-
-            const rawItems = (entry.annotations && entry.annotations.legend && Array.isArray(entry.annotations.legend.items))
-                ? entry.annotations.legend.items
-                : [];
-            const legendRows = rawItems
-                .map((item, i) => ({
-                    color: (item && item.color) || ANNOTATION_COLORS[i] || '#95a5a6',
-                    text: (item && typeof item.label === 'string') ? item.label.trim() : ''
-                }))
-                .filter((row) => row.text);
-            if (!legendRows.length) return safeSourceUrl;
-
-            const legendTitle = (entry.annotations && entry.annotations.legend && entry.annotations.legend.title)
-                ? String(entry.annotations.legend.title).trim()
-                : (viewerLang === 'pt' ? 'Legenda' : 'Legend');
-            const authorName = ((entry.userDisplayName || (entry.annotations && entry.annotations.userDisplayName) || '').trim());
-            const authorPrefix = viewerLang === 'pt' ? 'Por: ' : 'By: ';
-            const authorLabel = authorName ? `${authorPrefix}${authorName}` : '';
-
-            const mapW = mapImage.width || 1024;
-            const mapH = mapImage.height || 1024;
-            const pad = 20;
-            const swatchSize = 16;
-            const rowGap = 10;
-            const titleGap = 14;
-            const userGap = authorLabel ? 16 : 0;
-            const legendWidth = 280;
-            const titleHeight = 24;
-            const legendHeight = pad + titleHeight + userGap + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
-            const outW = mapW + legendWidth + pad * 2;
-            const outH = Math.max(mapH + pad * 2, legendHeight);
-
-            const out = document.createElement('canvas');
-            out.width = outW;
-            out.height = outH;
-            const ctx = out.getContext('2d');
-            if (!ctx) return safeSourceUrl;
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, outW, outH);
-            ctx.drawImage(mapImage, pad, pad, mapW, mapH);
-
-            const legendX = pad + mapW + pad;
-            let y = pad + titleHeight;
-            ctx.fillStyle = '#222222';
-            ctx.font = '700 20px Lato, Arial, sans-serif';
-            ctx.fillText(legendTitle, legendX, y);
-            if (authorLabel) {
-                y += 20;
-                ctx.fillStyle = '#555555';
-                ctx.font = '600 14px Lato, Arial, sans-serif';
-                ctx.fillText(authorLabel, legendX, y);
-            }
-            y += titleGap;
-
-            ctx.font = '15px Lato, Arial, sans-serif';
-            legendRows.forEach((row) => {
-                y += swatchSize;
-                ctx.fillStyle = row.color || '#95a5a6';
-                ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
-                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
-                ctx.fillStyle = '#333333';
-                ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
-                y += rowGap;
-            });
-            try {
-                return out.toDataURL('image/png');
-            } catch {
-                return safeSourceUrl;
-            }
+            if (!blob) return;
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(objectUrl);
         }
 
         document.getElementById('viewer-save-png-btn').addEventListener('click', () => {
             const entries = getViewerSelectedEntries();
             if (!entries.length) return;
             entries.forEach((e, i) => {
-                const downloadUrl = e.previewPngUrl || e.dataUrl;
-                if (!downloadUrl) return;
                 setTimeout(() => {
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
-                    a.download = 'map-annotations-snapshot-' + suffix + '.png';
-                    a.click();
+                    downloadViewerEntryPng(e, i, entries.length).catch((err) => console.error('PNG save failed', err));
                 }, i * 200);
             });
         });
@@ -807,23 +975,8 @@
             const entries = getViewerSelectedEntries();
             if (!entries.length) return;
             entries.forEach((e, i) => {
-                setTimeout(async () => {
-                    const suffix = e.id ? String(e.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12) : String(i + 1);
-                    const filename = 'map-annotations-snapshot-' + suffix + '.png';
-                    try {
-                        const downloadUrl = e.previewPngUrl || e.dataUrl;
-                        if (!downloadUrl) return;
-                        if (downloadUrl.startsWith('data:image/png')) {
-                            const a = document.createElement('a');
-                            a.href = downloadUrl;
-                            a.download = filename;
-                            a.click();
-                            return;
-                        }
-                        await forceDownloadPng(downloadUrl, filename);
-                    } catch (error) {
-                        console.error('PNG download failed', error);
-                    }
+                setTimeout(() => {
+                    downloadViewerEntryPng(e, i, entries.length).catch((err) => console.error('PNG download failed', err));
                 }, i * 200);
             });
         });
@@ -831,27 +984,24 @@
         document.getElementById('viewer-save-json-btn').addEventListener('click', () => {
             const entries = getViewerSelectedEntries();
             if (!entries.length) return;
-            const payload = {
-                version: 1,
-                exportedAt: new Date().toISOString(),
-                entries: entries.map((entry) => ({
-                    id: entry.id || null,
-                    title: entry.title || null,
-                    userId: entry.userId || null,
-                    userDisplayName: entry.userDisplayName || null,
-                    createdAt: entry.createdAt || null,
-                    updatedAt: entry.updatedAt || null,
-                    annotations: entry.annotations || null
-                }))
-            };
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const suffix = entries.length > 1 ? `${entries.length}-selected` : 'selected';
-            a.download = `map-previews-${suffix}-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
+            entries.forEach((entry, i) => {
+                setTimeout(() => {
+                    const payload = buildViewerJsonExportForEntry(entry);
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const cleanUser = ((entry.userDisplayName || 'user').replace(/[^a-zA-Z0-9_-]/g, '_')).slice(0, 24);
+                    const idPart = entry.id ? String(entry.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 12) : String(i + 1);
+                    a.download = entries.length > 1
+                        ? `map-annotations-${cleanUser}-${idPart}.json`
+                        : `map-annotations-${cleanUser}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                }, i * 200);
+            });
         });
 
 

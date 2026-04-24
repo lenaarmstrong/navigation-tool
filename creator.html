@@ -1910,7 +1910,20 @@
             const annotationsSnapshot = getAnnotationSnapshot();
             annotationsSnapshot.userDisplayName = currentUser;
             annotationsSnapshot.savedAt = new Date().toISOString();
-            // Keep gallery/viewer payload lightweight and map-focused for reliability.
+            annotationsSnapshot.startAddress = ((document.getElementById('start') && document.getElementById('start').value) || '').trim() || null;
+            annotationsSnapshot.endAddress = ((document.getElementById('end') && document.getElementById('end').value) || '').trim() || null;
+            annotationsSnapshot.annotationColors = ANNOTATION_COLORS.slice();
+            annotationsSnapshot.map = { style: DEFAULT_MAP_STYLE_FOR_EXPORT, camera: getMapCameraSnapshot() };
+            const routeGeometry = getRouteGeometryFromMap();
+            const endpoints = getRouteEndpointsForExport();
+            annotationsSnapshot.route = routeGeometry
+                ? {
+                    profile: getSelectedProfile() || 'driving',
+                    geometry: routeGeometry,
+                    startLngLat: endpoints.start,
+                    endLngLat: endpoints.end
+                }
+                : null;
             selectedPreviewGalleryId = await appendPreviewToGallery(pngUrl, galleryPreviewDataUrl, annotationsSnapshot);
             if (selectedPreviewGalleryId) syncWrapFromSelected();
             await refreshPreviewGalleryFromApi();
