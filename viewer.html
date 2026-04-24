@@ -181,6 +181,93 @@
             color: #3a3a55;
         }
 
+        .viewer-import-section {
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #ddd;
+        }
+
+        .viewer-import-hint {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0 0 10px 0;
+            line-height: 1.35;
+        }
+
+        .viewer-import-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .viewer-import-error {
+            color: #b00020;
+            font-size: 0.9rem;
+            margin: 0 0 10px 0;
+        }
+
+        .viewer-import-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding: 12px 14px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .viewer-import-meta-block {
+            flex: 1 1 200px;
+            min-width: 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .viewer-import-meta-block h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .viewer-import-legend-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .viewer-import-legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+        }
+
+        .viewer-import-map-container {
+            width: 100%;
+            height: 420px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #c3c3c3;
+            box-sizing: border-box;
+        }
+
+        .viewer-import-map-container[hidden] {
+            display: none !important;
+        }
+
+        #viewer-import-map {
+            width: 100%;
+            height: 100%;
+        }
+
     </style>
 </head>
 <body>
@@ -208,7 +295,21 @@
         <div id="viewer-map-container" class="viewer-map-container" hidden>
             <div id="viewer-map" role="application" aria-label="Map showing selected preview annotations"></div>
         </div>
-        
+
+        <section class="viewer-import-section" aria-labelledby="viewer-import-heading">
+            <h2 class="visualization-heading" id="viewer-import-heading">Import JSON</h2>
+            <p class="viewer-import-hint" id="viewer-import-hint"></p>
+            <div class="viewer-import-toolbar">
+                <button type="button" id="viewer-import-json-btn" class="viewer-preview-toolbar-btn">Import JSON</button>
+                <input type="file" id="viewer-import-json-input" accept="application/json,.json" hidden>
+            </div>
+            <p class="viewer-import-error" id="viewer-import-json-error" hidden></p>
+            <div id="viewer-import-meta" class="viewer-import-meta" hidden></div>
+            <div id="viewer-import-map-container" class="viewer-import-map-container" hidden>
+                <div id="viewer-import-map" role="application" aria-label="Imported map from JSON file"></div>
+            </div>
+        </section>
+
     </main>
 
     <script src="config.js"></script>
@@ -243,7 +344,17 @@
                 loginNeeded: 'Open Creator and enter your name to view your saved previews.',
                 mapSavedByPrefix: 'By: ',
                 exportPngRouteFrom: 'Starting address:',
-                exportPngRouteTo: 'Destination address:'
+                exportPngRouteTo: 'Destination address:',
+                importSectionTitle: 'Import JSON',
+                importHint: 'Choose a map export JSON file (same format as Download JSON from Creator or Viewer) to show annotations, route, addresses, legend, and author on the map below.',
+                importJsonBtn: 'Import JSON',
+                importMapAria: 'Imported map from JSON file',
+                importErrorParse: 'Could not read that file as JSON.',
+                importErrorInvalid: 'This file does not look like a valid map export (missing draw, circles, text, or route).',
+                importMetaAuthor: 'Author',
+                importMetaAddresses: 'Addresses',
+                importMetaLegend: 'Legend',
+                importMetaNone: '—'
             },
             pt: {
                 pageTitle: 'Visualizador',
@@ -266,7 +377,17 @@
                 loginNeeded: 'Abra o Criador e informe seu nome para ver seus mapas salvos.',
                 mapSavedByPrefix: 'Por: ',
                 exportPngRouteFrom: 'Endereço de partida:',
-                exportPngRouteTo: 'Endereço de destino:'
+                exportPngRouteTo: 'Endereço de destino:',
+                importSectionTitle: 'Importar JSON',
+                importHint: 'Escolha um arquivo JSON exportado do mapa (mesmo formato de Baixar JSON no Criador ou Visualizador) para mostrar anotações, rota, endereços, legenda e autor no mapa abaixo.',
+                importJsonBtn: 'Importar JSON',
+                importMapAria: 'Mapa importado de arquivo JSON',
+                importErrorParse: 'Não foi possível ler o arquivo como JSON.',
+                importErrorInvalid: 'O arquivo não parece um export válido do mapa (faltam desenho, círculos, texto ou rota).',
+                importMetaAuthor: 'Autor',
+                importMetaAddresses: 'Endereços',
+                importMetaLegend: 'Legenda',
+                importMetaNone: '—'
             }
         };
 
@@ -288,6 +409,14 @@
             if (gallery) gallery.setAttribute('aria-label', t.galleryAria);
             const mapEl = document.getElementById('viewer-map');
             if (mapEl) mapEl.setAttribute('aria-label', t.mapAria);
+            const importHeading = document.getElementById('viewer-import-heading');
+            if (importHeading) importHeading.textContent = t.importSectionTitle;
+            const importHint = document.getElementById('viewer-import-hint');
+            if (importHint) importHint.textContent = t.importHint;
+            const importBtn = document.getElementById('viewer-import-json-btn');
+            if (importBtn) importBtn.textContent = t.importJsonBtn;
+            const importMapEl = document.getElementById('viewer-import-map');
+            if (importMapEl) importMapEl.setAttribute('aria-label', t.importMapAria);
             const langBtn = document.getElementById('lang-btn');
             if (langBtn) {
                 langBtn.textContent = viewerLang === 'en' ? 'EN' : 'PT';
@@ -324,6 +453,12 @@
         let viewerMapContainerShown = false;
         const viewerMapInitCallbacks = [];
         let viewerPreviewGallery = [];
+
+        let importMap = null;
+        let importMapLayersReady = false;
+        const importRouteMarkers = [];
+        const IMPORT_ROUTE_SOURCE = 'import-route';
+        const IMPORT_ROUTE_LAYER = 'import-route-line';
 
         async function apiRequest(path, options) {
             const res = await fetch(`${API_BASE}${path}`, {
@@ -413,6 +548,113 @@
             if (snap.text) extendBoundsFromGeoJSON(bounds, snap.text);
         }
 
+        function extendBoundsFromRouteGeometry(bounds, geometry) {
+            if (!geometry || !bounds) return;
+            const g = geometry;
+            if (g.type === 'LineString' && Array.isArray(g.coordinates)) {
+                g.coordinates.forEach((c) => bounds.extend(c));
+            } else if (g.type === 'MultiLineString' && Array.isArray(g.coordinates)) {
+                g.coordinates.forEach((line) => line.forEach((c) => bounds.extend(c)));
+            }
+        }
+
+        function colorIndexMatchExpr(palette) {
+            const c = palette && palette.length >= 8 ? palette : ANNOTATION_COLORS;
+            return ['match', ['get', 'colorIndex'], 0, c[0], 1, c[1], 2, c[2], 3, c[3], 4, c[4], 5, c[5], 6, c[6], 7, c[7], '#95a5a6'];
+        }
+
+        function drawColorWithPaletteFallback(palette) {
+            return ['coalesce', ['get', 'user_drawColor'], ['get', 'drawColor'], colorIndexMatchExpr(palette)];
+        }
+
+        function addAnnotationLayersToMap(map, palette) {
+            const strokeColor = drawColorWithPaletteFallback(palette);
+            map.addSource('annotations', { type: 'geojson', data: emptyFeatureCollection() });
+            map.addLayer({
+                id: 'annotations-fill',
+                type: 'fill',
+                source: 'annotations',
+                filter: ['==', ['geometry-type'], 'Polygon'],
+                paint: {
+                    'fill-color': strokeColor,
+                    'fill-opacity': 0.6
+                }
+            });
+            map.addLayer({
+                id: 'annotations-line',
+                type: 'line',
+                source: 'annotations',
+                filter: ['==', ['geometry-type'], 'Polygon'],
+                paint: {
+                    'line-color': strokeColor,
+                    'line-width': 2
+                }
+            });
+            map.addLayer({
+                id: 'annotations-linestring',
+                type: 'line',
+                source: 'annotations',
+                filter: ['==', ['geometry-type'], 'LineString'],
+                paint: {
+                    'line-color': strokeColor,
+                    'line-width': 4
+                }
+            });
+            map.addLayer({
+                id: 'annotations-point',
+                type: 'circle',
+                source: 'annotations',
+                filter: ['==', ['geometry-type'], 'Point'],
+                paint: {
+                    'circle-radius': 8,
+                    'circle-color': strokeColor,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#fff'
+                }
+            });
+            map.addSource('user-circles', { type: 'geojson', data: emptyFeatureCollection() });
+            map.addLayer({
+                id: 'user-circles-fill',
+                type: 'fill',
+                source: 'user-circles',
+                paint: {
+                    'fill-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                    'fill-opacity': 0.2
+                }
+            });
+            map.addLayer({
+                id: 'user-circles-line',
+                type: 'line',
+                source: 'user-circles',
+                paint: {
+                    'line-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
+                    'line-width': 1
+                }
+            });
+            map.addSource('map-text', { type: 'geojson', data: emptyFeatureCollection() });
+            map.addLayer({
+                id: 'map-text-layer',
+                type: 'symbol',
+                source: 'map-text',
+                layout: {
+                    'text-field': ['get', 'text'],
+                    'text-size': ['coalesce', ['to-number', ['get', 'textSize']], 15],
+                    'text-font': ['Lato Regular', 'Arial Unicode MS Regular'],
+                    'text-offset': [0, 0],
+                    'text-anchor': 'center',
+                    'text-allow-overlap': true
+                },
+                paint: {
+                    'text-color': '#111111',
+                    'text-halo-color': '#ffffff',
+                    'text-halo-width': 1.5
+                }
+            });
+            ['annotations-fill', 'annotations-line', 'annotations-linestring', 'annotations-point', 'user-circles-fill', 'user-circles-line', 'map-text-layer'].forEach((id) => {
+                if (map.getLayer(id)) map.moveLayer(id);
+            });
+        }
+
         function clearViewerMapSources() {
             if (!viewerMap || !viewerMapLayersReady) return;
             const ann = viewerMap.getSource('annotations');
@@ -479,95 +721,12 @@
                 zoom: 11
             });
             viewerMap.once('load', () => {
-                    viewerMap.addSource('annotations', { type: 'geojson', data: emptyFeatureCollection() });
-                    viewerMap.addLayer({
-                        id: 'annotations-fill',
-                        type: 'fill',
-                        source: 'annotations',
-                        filter: ['==', ['geometry-type'], 'Polygon'],
-                        paint: {
-                            'fill-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
-                            'fill-opacity': 0.6
-                        }
-                    });
-                    viewerMap.addLayer({
-                        id: 'annotations-line',
-                        type: 'line',
-                        source: 'annotations',
-                        filter: ['==', ['geometry-type'], 'Polygon'],
-                        paint: {
-                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
-                            'line-width': 2
-                        }
-                    });
-                    viewerMap.addLayer({
-                        id: 'annotations-linestring',
-                        type: 'line',
-                        source: 'annotations',
-                        filter: ['==', ['geometry-type'], 'LineString'],
-                        paint: {
-                            'line-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
-                            'line-width': 4
-                        }
-                    });
-                    viewerMap.addLayer({
-                        id: 'annotations-point',
-                        type: 'circle',
-                        source: 'annotations',
-                        filter: ['==', ['geometry-type'], 'Point'],
-                        paint: {
-                            'circle-radius': 8,
-                            'circle-color': ['match', ['get', 'colorIndex'], 0, ANNOTATION_COLORS[0], 1, ANNOTATION_COLORS[1], 2, ANNOTATION_COLORS[2], 3, ANNOTATION_COLORS[3], 4, ANNOTATION_COLORS[4], 5, ANNOTATION_COLORS[5], 6, ANNOTATION_COLORS[6], 7, ANNOTATION_COLORS[7], '#95a5a6'],
-                            'circle-stroke-width': 2,
-                            'circle-stroke-color': '#fff'
-                        }
-                    });
-                    viewerMap.addSource('user-circles', { type: 'geojson', data: emptyFeatureCollection() });
-                    viewerMap.addLayer({
-                        id: 'user-circles-fill',
-                        type: 'fill',
-                        source: 'user-circles',
-                        paint: {
-                            'fill-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
-                            'fill-opacity': 0.2
-                        }
-                    });
-                    viewerMap.addLayer({
-                        id: 'user-circles-line',
-                        type: 'line',
-                        source: 'user-circles',
-                        paint: {
-                            'line-color': ['coalesce', ['get', 'color'], '#6A5ACD'],
-                            'line-width': 1
-                        }
-                    });
-                    viewerMap.addSource('map-text', { type: 'geojson', data: emptyFeatureCollection() });
-                    viewerMap.addLayer({
-                        id: 'map-text-layer',
-                        type: 'symbol',
-                        source: 'map-text',
-                        layout: {
-                            'text-field': ['get', 'text'],
-                            'text-size': 15,
-                            'text-font': ['Lato Regular', 'Arial Unicode MS Regular'],
-                            'text-offset': [0, 0],
-                            'text-anchor': 'center',
-                            'text-allow-overlap': true
-                        },
-                        paint: {
-                            'text-color': '#111111',
-                            'text-halo-color': '#ffffff',
-                            'text-halo-width': 1.5
-                        }
-                    });
-                    ['annotations-fill', 'annotations-line', 'annotations-linestring', 'annotations-point', 'user-circles-fill', 'user-circles-line', 'map-text-layer'].forEach((id) => {
-                        if (viewerMap.getLayer(id)) viewerMap.moveLayer(id);
-                    });
-                    viewerMapLayersReady = true;
-                    const cbs = viewerMapInitCallbacks.slice();
-                    viewerMapInitCallbacks.length = 0;
-                    cbs.forEach((cb) => cb());
-                });
+                addAnnotationLayersToMap(viewerMap, ANNOTATION_COLORS);
+                viewerMapLayersReady = true;
+                const cbs = viewerMapInitCallbacks.slice();
+                viewerMapInitCallbacks.length = 0;
+                cbs.forEach((cb) => cb());
+            });
         }
 
 
@@ -1033,6 +1192,281 @@
             clearViewerMapSources();
             renderSavedPreviewsFromCreator();
             if (viewerMap) viewerMap.resize();
+        });
+
+        function escapeHtmlAttr(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function normalizeImportPayload(raw) {
+            if (!raw || typeof raw !== 'object') return null;
+            let base = raw;
+            if (Array.isArray(raw.entries) && raw.entries.length > 0) {
+                const e = raw.entries[0];
+                const ann = (e && e.annotations && typeof e.annotations === 'object') ? e.annotations : {};
+                base = {
+                    draw: ann.draw,
+                    circles: ann.circles,
+                    text: ann.text,
+                    nextTextId: ann.nextTextId,
+                    legend: ann.legend,
+                    author: raw.author || ann.author || e.userDisplayName || ann.userDisplayName || null,
+                    startAddress: ann.startAddress != null ? ann.startAddress : null,
+                    endAddress: ann.endAddress != null ? ann.endAddress : null,
+                    map: ann.map || null,
+                    route: ann.route != null ? ann.route : null,
+                    annotationColors: ann.annotationColors,
+                    savedPreviewId: e.id,
+                    savedPreviewTitle: e.title
+                };
+            }
+            const hasDraw = base.draw && Array.isArray(base.draw.features) && base.draw.features.length > 0;
+            const hasCircles = base.circles && Array.isArray(base.circles.features) && base.circles.features.length > 0;
+            const hasText = base.text && Array.isArray(base.text.features) && base.text.features.length > 0;
+            const hasRoute = base.route && base.route.geometry;
+            if (!hasDraw && !hasCircles && !hasText && !hasRoute) return null;
+            return base;
+        }
+
+        function destroyImportMap() {
+            importRouteMarkers.forEach((m) => {
+                try {
+                    m.remove();
+                } catch (_e) {
+                    /* ignore */
+                }
+            });
+            importRouteMarkers.length = 0;
+            if (importMap) {
+                try {
+                    if (importMap.getLayer(IMPORT_ROUTE_LAYER)) importMap.removeLayer(IMPORT_ROUTE_LAYER);
+                    if (importMap.getSource(IMPORT_ROUTE_SOURCE)) importMap.removeSource(IMPORT_ROUTE_SOURCE);
+                } catch (_e) {
+                    /* ignore */
+                }
+                try {
+                    importMap.remove();
+                } catch (_e) {
+                    /* ignore */
+                }
+            }
+            importMap = null;
+            importMapLayersReady = false;
+        }
+
+        function renderImportMetaPanel(payload) {
+            const meta = document.getElementById('viewer-import-meta');
+            if (!meta) return;
+            const t = viewerTranslations[viewerLang] || viewerTranslations.en;
+            const author = String(payload.author || payload.userDisplayName || '').trim();
+            const start = typeof payload.startAddress === 'string' ? payload.startAddress.trim() : '';
+            const end = typeof payload.endAddress === 'string' ? payload.endAddress.trim() : '';
+            const leg = payload.legend && typeof payload.legend === 'object' ? payload.legend : {};
+            const legendTitle = (leg.title && String(leg.title).trim()) || t.importMetaLegend;
+            const items = Array.isArray(leg.items) ? leg.items : [];
+            const palette = Array.isArray(payload.annotationColors) && payload.annotationColors.length >= 8
+                ? payload.annotationColors
+                : ANNOTATION_COLORS;
+            let legendRows = '';
+            items.forEach((item, i) => {
+                const lab = (item && typeof item.label === 'string') ? item.label.trim() : '';
+                if (!lab) return;
+                const col = (item && item.color) || palette[i] || '#95a5a6';
+                legendRows += `<div class="viewer-import-legend-row"><span class="viewer-import-legend-swatch" style="background:${escapeHtmlAttr(col)}"></span><span>${escapeHtmlAttr(lab)}</span></div>`;
+            });
+            const addrBlock = (!start && !end)
+                ? `<p>${escapeHtmlAttr(t.importMetaNone)}</p>`
+                : `${start ? `<p><strong>${escapeHtmlAttr(t.exportPngRouteFrom)}</strong> ${escapeHtmlAttr(start)}</p>` : ''}${end ? `<p><strong>${escapeHtmlAttr(t.exportPngRouteTo)}</strong> ${escapeHtmlAttr(end)}</p>` : ''}`;
+            meta.innerHTML = `
+                <div class="viewer-import-meta-block"><h3>${escapeHtmlAttr(t.importMetaAuthor)}</h3><p>${author ? escapeHtmlAttr(author) : escapeHtmlAttr(t.importMetaNone)}</p></div>
+                <div class="viewer-import-meta-block"><h3>${escapeHtmlAttr(t.importMetaAddresses)}</h3>${addrBlock}</div>
+                <div class="viewer-import-meta-block"><h3>${escapeHtmlAttr(legendTitle)}</h3>${legendRows || `<p>${escapeHtmlAttr(t.importMetaNone)}</p>`}</div>
+            `;
+        }
+
+        function applyImportPayloadToImportMap(map, payload) {
+            if (!map || !importMapLayersReady || !payload) return;
+            const draw = payload.draw && Array.isArray(payload.draw.features) ? payload.draw : emptyFeatureCollection();
+            const circles = payload.circles && Array.isArray(payload.circles.features) ? payload.circles : emptyFeatureCollection();
+            const text = payload.text && Array.isArray(payload.text.features) ? payload.text : emptyFeatureCollection();
+            map.getSource('annotations').setData(draw);
+            map.getSource('user-circles').setData(circles);
+            map.getSource('map-text').setData(text);
+
+            try {
+                if (map.getLayer(IMPORT_ROUTE_LAYER)) map.removeLayer(IMPORT_ROUTE_LAYER);
+                if (map.getSource(IMPORT_ROUTE_SOURCE)) map.removeSource(IMPORT_ROUTE_SOURCE);
+            } catch (_e) {
+                /* ignore */
+            }
+            importRouteMarkers.forEach((m) => {
+                try {
+                    m.remove();
+                } catch (_e) {
+                    /* ignore */
+                }
+            });
+            importRouteMarkers.length = 0;
+
+            if (payload.route && payload.route.geometry) {
+                map.addSource(IMPORT_ROUTE_SOURCE, {
+                    type: 'geojson',
+                    data: { type: 'Feature', geometry: payload.route.geometry, properties: {} }
+                });
+                map.addLayer({
+                    id: IMPORT_ROUTE_LAYER,
+                    type: 'line',
+                    source: IMPORT_ROUTE_SOURCE,
+                    layout: { 'line-join': 'round', 'line-cap': 'round' },
+                    paint: { 'line-color': '#3d3d3d', 'line-width': 3, 'line-opacity': 0.55 }
+                });
+            }
+
+            const r = payload.route;
+            if (r && r.startLngLat && Number.isFinite(Number(r.startLngLat.lng)) && Number.isFinite(Number(r.startLngLat.lat))) {
+                const el = document.createElement('div');
+                el.style.width = '12px';
+                el.style.height = '12px';
+                el.style.borderRadius = '50%';
+                el.style.background = '#fff';
+                el.style.border = '2px solid #000';
+                el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.25)';
+                const m = new mapboxgl.Marker({ element: el })
+                    .setLngLat([Number(r.startLngLat.lng), Number(r.startLngLat.lat)])
+                    .addTo(map);
+                importRouteMarkers.push(m);
+            }
+            if (r && r.endLngLat && Number.isFinite(Number(r.endLngLat.lng)) && Number.isFinite(Number(r.endLngLat.lat))) {
+                const el2 = document.createElement('div');
+                el2.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="#3d3d3d" stroke="#1a1a1a" stroke-width="0.6" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
+                const m2 = new mapboxgl.Marker({ element: el2, anchor: 'bottom' })
+                    .setLngLat([Number(r.endLngLat.lng), Number(r.endLngLat.lat)])
+                    .addTo(map);
+                importRouteMarkers.push(m2);
+            }
+
+            const layerOrder = [
+                'annotations-fill',
+                'annotations-line',
+                'annotations-linestring',
+                'annotations-point',
+                IMPORT_ROUTE_LAYER,
+                'user-circles-fill',
+                'user-circles-line',
+                'map-text-layer'
+            ];
+            layerOrder.forEach((id) => {
+                if (map.getLayer(id)) map.moveLayer(id);
+            });
+
+            const b = new mapboxgl.LngLatBounds();
+            extendBoundsFromSnapshot(b, { draw, circles, text });
+            extendBoundsFromRouteGeometry(b, payload.route && payload.route.geometry);
+            if (r && r.startLngLat && Number.isFinite(Number(r.startLngLat.lng))) {
+                b.extend([Number(r.startLngLat.lng), Number(r.startLngLat.lat)]);
+            }
+            if (r && r.endLngLat && Number.isFinite(Number(r.endLngLat.lng))) {
+                b.extend([Number(r.endLngLat.lng), Number(r.endLngLat.lat)]);
+            }
+
+            const cam = payload.map && payload.map.camera;
+            if (cam && Array.isArray(cam.center) && cam.center.length === 2 && typeof cam.zoom === 'number') {
+                map.jumpTo({
+                    center: [Number(cam.center[0]), Number(cam.center[1])],
+                    zoom: Number(cam.zoom),
+                    bearing: typeof cam.bearing === 'number' ? cam.bearing : 0,
+                    pitch: typeof cam.pitch === 'number' ? cam.pitch : 0
+                });
+            } else if (!b.isEmpty()) {
+                map.fitBounds(b, { padding: 48, maxZoom: 16, duration: 0 });
+            } else {
+                map.jumpTo({ center: [-43.23, -22.93], zoom: 11 });
+            }
+            map.resize();
+        }
+
+        function ensureImportMapFresh(styleUri, palette, callback) {
+            importMap = new mapboxgl.Map({
+                container: 'viewer-import-map',
+                style: (styleUri && typeof styleUri === 'string') ? styleUri : DEFAULT_MAP_STYLE_FOR_EXPORT,
+                center: [-43.23, -22.93],
+                zoom: 11
+            });
+            importMap.once('load', () => {
+                addAnnotationLayersToMap(importMap, palette);
+                importMapLayersReady = true;
+                if (callback) callback();
+            });
+        }
+
+        async function handleViewerJsonImport(file) {
+            const errEl = document.getElementById('viewer-import-json-error');
+            const meta = document.getElementById('viewer-import-meta');
+            const mapWrap = document.getElementById('viewer-import-map-container');
+            const t = viewerTranslations[viewerLang] || viewerTranslations.en;
+            if (errEl) {
+                errEl.setAttribute('hidden', '');
+                errEl.textContent = '';
+            }
+            let text;
+            try {
+                text = await file.text();
+            } catch {
+                if (errEl) {
+                    errEl.removeAttribute('hidden');
+                    errEl.textContent = t.importErrorParse;
+                }
+                return;
+            }
+            let raw;
+            try {
+                raw = JSON.parse(text);
+            } catch {
+                if (errEl) {
+                    errEl.removeAttribute('hidden');
+                    errEl.textContent = t.importErrorParse;
+                }
+                return;
+            }
+            const payload = normalizeImportPayload(raw);
+            if (!payload) {
+                if (errEl) {
+                    errEl.removeAttribute('hidden');
+                    errEl.textContent = t.importErrorInvalid;
+                }
+                return;
+            }
+            const palette = Array.isArray(payload.annotationColors) && payload.annotationColors.length >= 8
+                ? payload.annotationColors
+                : ANNOTATION_COLORS;
+            const styleUri = (payload.map && payload.map.style) ? payload.map.style : DEFAULT_MAP_STYLE_FOR_EXPORT;
+
+            destroyImportMap();
+
+            if (meta) {
+                meta.removeAttribute('hidden');
+                renderImportMetaPanel(payload);
+            }
+            if (mapWrap) mapWrap.removeAttribute('hidden');
+
+            ensureImportMapFresh(styleUri, palette, () => {
+                applyImportPayloadToImportMap(importMap, payload);
+            });
+        }
+
+        document.getElementById('viewer-import-json-btn').addEventListener('click', () => {
+            const input = document.getElementById('viewer-import-json-input');
+            if (input) input.click();
+        });
+        document.getElementById('viewer-import-json-input').addEventListener('change', (ev) => {
+            const input = ev.target;
+            const f = input.files && input.files[0];
+            input.value = '';
+            if (!f) return;
+            handleViewerJsonImport(f).catch((e) => console.error(e));
         });
 
         async function initViewerData() {
