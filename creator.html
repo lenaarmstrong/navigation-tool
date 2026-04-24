@@ -227,7 +227,9 @@
             circleHintActive: 'Click the map to place a circle. Turn off when done.',
             mapSnapshotSavePng: 'Preview',
             mapSnapshotDownloadPng: 'Download Image',
-            mapSnapshotDownloadJson: 'Download Shapes',
+            mapSnapshotDownloadJson: 'Download JSON',
+            exportPngRouteFrom: 'Starting address:',
+            exportPngRouteTo: 'Destination address:',
             mapSnapshotDelete: 'Delete',
             mapSnapshotPreviewAlt: 'Map snapshot preview',
             drawLineLabel: 'Line:',
@@ -251,7 +253,7 @@
             driving: 'Dirigir',
             walking: 'Caminhar',
             cycling: 'Andar de bicicleta',
-            visualizeRouteHeading: 'Visualize uma rota',
+            visualizeRouteHeading: 'Visualizar uma rota',
             visualizeRoute: 'Visualizar Rota',
             routesTab: 'Rotas',
             regionsTab: 'Regiões',
@@ -287,7 +289,9 @@
             circleHintActive: 'Clique no mapa para colocar um círculo. Desative ao terminar.',
             mapSnapshotSavePng: 'Visualização',
             mapSnapshotDownloadPng: 'Baixar imagem',
-            mapSnapshotDownloadJson: 'Baixar formas',
+            mapSnapshotDownloadJson: 'Baixar JSON',
+            exportPngRouteFrom: 'Endereço de partida:',
+            exportPngRouteTo: 'Endereço de destino:',
             mapSnapshotDelete: 'Excluir',
             mapSnapshotPreviewAlt: 'Pré-visualização da captura do mapa',
             drawLineLabel: 'Linha:',
@@ -1224,6 +1228,134 @@
         return document.querySelector('.profile-btn.active').dataset.profile;
     }
 
+    function canvasWrapTextLines(ctx, text, maxWidth) {
+        const raw = String(text || '').trim();
+        if (!raw) return [];
+        const words = raw.split(/\s+/);
+        const lines = [];
+        let line = '';
+        words.forEach((w) => {
+            const test = line ? `${line} ${w}` : w;
+            if (ctx.measureText(test).width <= maxWidth) {
+                line = test;
+                return;
+            }
+            if (line) {
+                lines.push(line);
+                line = '';
+            }
+            if (ctx.measureText(w).width <= maxWidth) {
+                line = w;
+                return;
+            }
+            let partial = '';
+            for (let i = 0; i < w.length; i++) {
+                const t2 = partial + w[i];
+                if (ctx.measureText(t2).width <= maxWidth) {
+                    partial = t2;
+                } else {
+                    if (partial) {
+                        lines.push(partial);
+                        partial = w[i];
+                    } else {
+                        lines.push(w[i]);
+                    }
+                }
+            }
+            line = partial;
+        });
+        if (line) lines.push(line);
+        return lines;
+    }
+
+    function getRouteSourceDataFromMap() {
+        const src = map.getSource('route');
+        if (!src || src.type !== 'geojson') return null;
+        try {
+            if (typeof src.serialize === 'function') {
+                const s = src.serialize();
+                if (s && s.data) return JSON.parse(JSON.stringify(s.data));
+            }
+        } catch (e) {
+            // ignore
+        }
+        try {
+            if (src._data) return JSON.parse(JSON.stringify(src._data));
+        } catch (e2) {
+            // ignore
+        }
+        return null;
+    }
+
+    function getRouteGeometryFromMap() {
+        const data = getRouteSourceDataFromMap();
+        if (!data) return null;
+        if (data.type === 'Feature' && data.geometry) return JSON.parse(JSON.stringify(data.geometry));
+        if (data.type === 'FeatureCollection' && data.features && data.features[0] && data.features[0].geometry) {
+            return JSON.parse(JSON.stringify(data.features[0].geometry));
+        }
+        return null;
+    }
+
+    function getRouteEndpointsForExport() {
+        const out = { start: null, end: null };
+        if (routeStartMarker) {
+            const ll = routeStartMarker.getLngLat();
+            out.start = { lng: ll.lng, lat: ll.lat };
+        }
+        if (routeEndMarker) {
+            const ll = routeEndMarker.getLngLat();
+            out.end = { lng: ll.lng, lat: ll.lat };
+        }
+        return out;
+    }
+
+    function getMapCameraSnapshot() {
+        const c = map.getCenter();
+        return {
+            center: [c.lng, c.lat],
+            zoom: map.getZoom(),
+            bearing: map.getBearing(),
+            pitch: map.getPitch()
+        };
+    }
+
+    const DEFAULT_MAP_STYLE_FOR_EXPORT = 'mapbox://styles/mapbox/light-v11';
+
+    function buildLiveMapExportPayload() {
+        const snap = getAnnotationSnapshot();
+        const startAddress = (document.getElementById('start') && document.getElementById('start').value || '').trim();
+        const endAddress = (document.getElementById('end') && document.getElementById('end').value || '').trim();
+        const routeGeometry = getRouteGeometryFromMap();
+        const endpoints = getRouteEndpointsForExport();
+        const profile = getSelectedProfile();
+        return {
+            schemaVersion: 1,
+            exportedAt: new Date().toISOString(),
+            map: {
+                style: DEFAULT_MAP_STYLE_FOR_EXPORT,
+                camera: getMapCameraSnapshot()
+            },
+            route: routeGeometry
+                ? {
+                    profile: profile || 'driving',
+                    geometry: routeGeometry,
+                    startLngLat: endpoints.start,
+                    endLngLat: endpoints.end
+                }
+                : null,
+            startAddress: startAddress || null,
+            endAddress: endAddress || null,
+            author: (snap.userDisplayName || currentUser || '').trim() || null,
+            legend: snap.legend || null,
+            annotationColors: ANNOTATION_COLORS.slice(),
+            draw: snap.draw,
+            circles: snap.circles,
+            text: snap.text,
+            nextTextId: snap.nextTextId
+        };
+    }
+
     async function getMapAnnotationsScreenshotDataUrl() {
         if (!map || !map.getCanvas) return null;
         if (!map.loaded()) {
@@ -1302,11 +1434,13 @@
                 text: label
             });
         }
-        if (!legendRows.length) return mapDataUrl;
 
         const legendTitleEl = document.getElementById('annotations-label-legend-title');
         const legendTitle = ((legendTitleEl && legendTitleEl.textContent) || 'Legend').trim();
         const userNameLabel = currentUser ? `${translations[currentLang].mapSavedByPrefix}${currentUser}` : '';
+        const t = translations[currentLang] || translations.en;
+        const startTrim = ((document.getElementById('start') && document.getElementById('start').value) || '').trim();
+        const endTrim = ((document.getElementById('end') && document.getElementById('end').value) || '').trim();
 
         const mapImage = await new Promise((resolve) => {
             const img = new Image();
@@ -1318,16 +1452,41 @@
 
         const mapW = mapCanvas.width || mapImage.width || 1024;
         const mapH = mapCanvas.height || mapImage.height || 1024;
+
+        const meas = document.createElement('canvas').getContext('2d');
+        if (!meas) return mapDataUrl;
+        meas.font = '13px Lato, Arial, sans-serif';
+        const addrTextMaxW = Math.max(120, mapW - 24);
+        const addrLineH = 17;
+        let addressFooterH = 0;
+        if (startTrim || endTrim) {
+            addressFooterH += 12;
+            if (startTrim) {
+                addressFooterH += 14 + canvasWrapTextLines(meas, startTrim, addrTextMaxW).length * addrLineH + 6;
+            }
+            if (endTrim) {
+                addressFooterH += 14 + canvasWrapTextLines(meas, endTrim, addrTextMaxW).length * addrLineH;
+            }
+            addressFooterH += 10;
+        }
+
+        const showLegendColumn = legendRows.length > 0 || !!userNameLabel;
+        if (!showLegendColumn && !addressFooterH) return mapDataUrl;
+
         const pad = 20;
         const swatchSize = 16;
         const rowGap = 10;
         const titleGap = 14;
-        const userGap = userNameLabel ? 16 : 0;
         const legendWidth = 280;
         const titleHeight = 24;
-        const legendHeight = pad + titleHeight + userGap + titleGap + (legendRows.length * (swatchSize + rowGap)) - rowGap + pad;
-        const outW = mapW + legendWidth + pad * 2;
-        const outH = Math.max(mapH + pad * 2, legendHeight);
+        const userGap = userNameLabel ? 20 : 0;
+        const legendSwatchBlock = legendRows.length
+            ? titleGap + legendRows.length * (swatchSize + rowGap) - rowGap
+            : 0;
+        const legendHeight = pad + titleHeight + userGap + legendSwatchBlock + pad;
+        const leftColumnH = pad + mapH + addressFooterH + pad;
+        const outW = showLegendColumn ? mapW + legendWidth + pad * 2 : mapW + pad * 2;
+        const outH = Math.max(leftColumnH, showLegendColumn ? legendHeight : 0);
 
         const out = document.createElement('canvas');
         out.width = outW;
@@ -1339,31 +1498,60 @@
         ctx.fillRect(0, 0, outW, outH);
         ctx.drawImage(mapImage, pad, pad, mapW, mapH);
 
-        const legendX = pad + mapW + pad;
-        let y = pad + titleHeight;
-        ctx.fillStyle = '#222222';
-        ctx.font = '700 20px Lato, Arial, sans-serif';
-        ctx.fillText(legendTitle, legendX, y);
-        if (userNameLabel) {
-            y += 20;
-            ctx.fillStyle = '#555555';
-            ctx.font = '600 14px Lato, Arial, sans-serif';
-            ctx.fillText(userNameLabel, legendX, y);
+        if (startTrim || endTrim) {
+            let ay = pad + mapH + 12;
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = '#222222';
+            if (startTrim) {
+                ctx.font = '700 12px Lato, Arial, sans-serif';
+                ctx.fillText(t.exportPngRouteFrom, pad + 12, ay);
+                ay += 14;
+                ctx.font = '13px Lato, Arial, sans-serif';
+                canvasWrapTextLines(ctx, startTrim, addrTextMaxW).forEach((ln) => {
+                    ctx.fillText(ln, pad + 12, ay);
+                    ay += addrLineH;
+                });
+                ay += 6;
+            }
+            if (endTrim) {
+                ctx.font = '700 12px Lato, Arial, sans-serif';
+                ctx.fillText(t.exportPngRouteTo, pad + 12, ay);
+                ay += 14;
+                ctx.font = '13px Lato, Arial, sans-serif';
+                canvasWrapTextLines(ctx, endTrim, addrTextMaxW).forEach((ln) => {
+                    ctx.fillText(ln, pad + 12, ay);
+                    ay += addrLineH;
+                });
+            }
         }
-        y += titleGap;
 
-        ctx.font = '15px Lato, Arial, sans-serif';
-        legendRows.forEach((row) => {
-            y += swatchSize;
-            ctx.fillStyle = row.color || '#95a5a6';
-            ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
-            ctx.fillStyle = '#333333';
-            ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
-            y += rowGap;
-        });
+        if (showLegendColumn) {
+            const legendX = pad + mapW + pad;
+            let y = pad + titleHeight;
+            ctx.fillStyle = '#222222';
+            ctx.font = '700 20px Lato, Arial, sans-serif';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(legendTitle, legendX, y);
+            if (userNameLabel) {
+                y += 20;
+                ctx.fillStyle = '#555555';
+                ctx.font = '600 14px Lato, Arial, sans-serif';
+                ctx.fillText(userNameLabel, legendX, y);
+            }
+            y += legendRows.length ? titleGap : 0;
+            ctx.font = '15px Lato, Arial, sans-serif';
+            legendRows.forEach((row) => {
+                y += swatchSize;
+                ctx.fillStyle = row.color || '#95a5a6';
+                ctx.fillRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(legendX, y - swatchSize + 1, swatchSize, swatchSize);
+                ctx.fillStyle = '#333333';
+                ctx.fillText(row.text, legendX + swatchSize + 10, y - 2);
+                y += rowGap;
+            });
+        }
 
         return out.toDataURL('image/png');
     }
@@ -1688,11 +1876,7 @@
 
     document.getElementById('clear-annotations-btn').addEventListener('click', clearAllMapAnnotations);
 
-    async function runSaveMapPreview() {
-        if (!currentUser) {
-            showLoginOverlay(translations[currentLang].loginError);
-            return;
-        }
+    async function flushMapRenderForExport() {
         finalizeActiveTextDraft(true);
         syncAnnotations();
         refreshMapTextSource();
@@ -1702,6 +1886,14 @@
             new Promise((resolve) => setTimeout(resolve, 180))
         ]);
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+
+    async function runSaveMapPreview() {
+        if (!currentUser) {
+            showLoginOverlay(translations[currentLang].loginError);
+            return;
+        }
+        await flushMapRenderForExport();
         const saveBtn = document.getElementById('save-shapes-png');
         saveBtn.disabled = true;
         try {
@@ -1747,8 +1939,6 @@
     });
 
     document.getElementById('map-snapshot-download-png-btn').addEventListener('click', () => {
-        const entry = getGalleryEntryForShownPreview();
-        if (!entry) return;
         const cleanUser = (currentUser || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 24);
         const filename = `map-annotations-${cleanUser}.png`;
         (async () => {
@@ -1761,8 +1951,10 @@
                 link.remove();
             };
             try {
-                const pngUrl = await buildLegendSnapshotFromEntry(entry);
-                if (!pngUrl) return;
+                await flushMapRenderForExport();
+                const mapOnlyPngUrl = await getMapAnnotationsScreenshotDataUrl();
+                if (!mapOnlyPngUrl) return;
+                const pngUrl = (await buildMapSnapshotWithLegendDataUrl(mapOnlyPngUrl)) || mapOnlyPngUrl;
                 let blob = null;
                 if (pngUrl.startsWith('data:image/')) {
                     blob = await (await fetch(pngUrl)).blob();
@@ -1782,17 +1974,15 @@
     });
 
     document.getElementById('map-snapshot-download-json-btn').addEventListener('click', () => {
-        const entry = getGalleryEntryForShownPreview();
-        if (!entry || !entry.annotations) return;
-        const payload = {
-            id: entry.id || null,
-            title: entry.title || null,
-            userId: entry.userId || null,
-            userDisplayName: entry.userDisplayName || currentUser || null,
-            createdAt: entry.createdAt || null,
-            updatedAt: entry.updatedAt || null,
-            annotations: entry.annotations
-        };
+        finalizeActiveTextDraft(true);
+        syncAnnotations();
+        refreshMapTextSource();
+        const payload = buildLiveMapExportPayload();
+        const galleryEntry = getGalleryEntryForShownPreview();
+        if (galleryEntry && galleryEntry.id) {
+            payload.savedPreviewId = galleryEntry.id;
+            payload.savedPreviewTitle = galleryEntry.title || null;
+        }
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
