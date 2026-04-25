@@ -206,14 +206,14 @@
             errNoRoute: 'No route found between these two addresses. Try a different travel mode or addresses.',
             annotationsHeading: 'Add Annotations',
             routeHint: 'Search, select a result in each box (click or Enter), then click Visualize Route.',
-            labelPlaceholder0: 'e.g. Residents',
-            labelPlaceholder1: 'e.g. Taxi or Uber driver',
-            labelPlaceholder2: 'e.g. Unfamiliar',
-            labelPlaceholder3: 'e.g. Safe',
-            labelPlaceholder4: 'e.g. Technology works',
-            labelPlaceholder5: 'e.g. Technology issue',
-            labelPlaceholder6: 'e.g. New category',
-            labelPlaceholder7: 'e.g. New category',
+            labelPlaceholder0: 'e.g. recomendations for residents',
+            labelPlaceholder1: 'e.g. safe',
+            labelPlaceholder2: 'e.g. technology issue',
+            labelPlaceholder3: 'e.g. risk warnings',
+            labelPlaceholder4: 'e.g. recomendations for Taxi or Uber',
+            labelPlaceholder5: 'e.g. recomendations for tourists',
+            labelPlaceholder6: '',
+            labelPlaceholder7: '',
             circleToolHeading: 'Draw Bubbles of Safety',
             circleRadiusLabel: 'Radius (meters)',
             circleColorLabel: 'Color',
@@ -272,14 +272,14 @@
             errNoRoute: 'Nenhuma rota encontrada entre esses endereços. Tente outro modo de viagem ou endereços.',
             annotationsHeading: 'Adicionar anotações',
             routeHint: 'Pesquise, selecione um resultado em cada caixa (clique ou Enter), depois clique em Visualizar Rota.',
-            labelPlaceholder0: 'ex. Residentes',
-            labelPlaceholder1: 'ex. Táxi ou Uber',
-            labelPlaceholder2: 'ex. Desconhecido',
-            labelPlaceholder3: 'ex. Seguro',
-            labelPlaceholder4: 'ex. Tecnologia funciona',
-            labelPlaceholder5: 'ex. Problema na tecnologia',
-            labelPlaceholder6: 'ex. Nova categoria',
-            labelPlaceholder7: 'ex. Nova categoria',
+            labelPlaceholder0: 'ex. recomendações para residentes',
+            labelPlaceholder1: 'ex. seguro',
+            labelPlaceholder2: 'ex. problema na tecnologia',
+            labelPlaceholder3: 'ex. avisos de risco',
+            labelPlaceholder4: 'ex. recomendações para Táxi ou Uber',
+            labelPlaceholder5: 'ex. recomendações para turistas',
+            labelPlaceholder6: '',
+            labelPlaceholder7: '',
             circleToolHeading: 'Círculos no mapa',
             circleRadiusLabel: 'Raio (metros)',
             circleColorLabel: 'Cor',
@@ -334,6 +334,7 @@
     let creatorPreviewGallery = [];
     let mapSnapshotDataUrl = null;
     let selectedPreviewGalleryId = null;
+    let creatorPreviewInitPromise = null;
     let coordinatesPickModeActive = false;
     let coordinatesPickMarker = null;
     let coordinateFillTarget = 'start';
@@ -482,7 +483,7 @@
                 localStorage.setItem(USER_NAME_KEY, profileName);
                 hideLoginOverlay();
                 renderCurrentUserBadge();
-                await initCreatorPreviewGalleryFromStorage();
+                initCreatorPreviewGalleryFromStorage().catch(console.error);
             } catch (err) {
                 const message = err && err.message ? err.message : translations[currentLang].loginError;
                 showLoginOverlay(message);
@@ -510,7 +511,7 @@
         preserveDrawingBuffer: true
     });
 
-    const ANNOTATION_COLORS = ['#43159e', '#F7B32B', '#ff4d6d', '#3066BE', '#335145', '#a64b00', '#88CCF1', '#8CBA80'];
+    const ANNOTATION_COLORS = ['#43159e', '#3066BE', '#F7B32B', '#a64b00', '#ff4d6d', '#335145', '#8CBA80', '#88CCF1'];
     let selectedColorIndex = 0;
 
     const draw = new MapboxDraw({
@@ -1896,16 +1897,24 @@
     }
 
     async function initCreatorPreviewGalleryFromStorage() {
-        await refreshPreviewGalleryFromApi();
-        const list = loadPreviewGallery();
-        if (!list.length) {
+        if (creatorPreviewInitPromise) return creatorPreviewInitPromise;
+        creatorPreviewInitPromise = (async () => {
+            await refreshPreviewGalleryFromApi();
+            const list = loadPreviewGallery();
+            if (!list.length) {
+                syncWrapFromSelected();
+                renderCreatorAnnotationGallery();
+                return;
+            }
+            if (!selectedPreviewGalleryId) selectedPreviewGalleryId = list[list.length - 1].id;
             syncWrapFromSelected();
             renderCreatorAnnotationGallery();
-            return;
+        })();
+        try {
+            await creatorPreviewInitPromise;
+        } finally {
+            creatorPreviewInitPromise = null;
         }
-        if (!selectedPreviewGalleryId) selectedPreviewGalleryId = list[list.length - 1].id;
-        syncWrapFromSelected();
-        renderCreatorAnnotationGallery();
     }
 
     const EMPTY_ANNOTATION_SNAPSHOT = {
