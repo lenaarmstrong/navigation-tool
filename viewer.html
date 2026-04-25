@@ -235,6 +235,14 @@
             color: #222;
         }
 
+        .viewer-import-address-hint,
+        .viewer-import-legend-hint {
+            font-size: 0.82rem;
+            color: #666;
+            margin: 6px 0 0 0;
+            line-height: 1.35;
+        }
+
         .viewer-import-legend-row {
             display: flex;
             align-items: center;
@@ -346,7 +354,7 @@
                 exportPngRouteFrom: 'Starting address:',
                 exportPngRouteTo: 'Destination address:',
                 importSectionTitle: 'Import JSON',
-                importHint: 'Choose a map export JSON file (same format as Download JSON from Creator or Viewer) to show annotations, route, addresses, legend, and author on the map below.',
+                importHint: 'Choose a map export JSON file to show annotations, route, addresses, legend, and author on the map below.',
                 importJsonBtn: 'Import JSON',
                 importMapAria: 'Imported map from JSON file',
                 importErrorParse: 'Could not read that file as JSON.',
@@ -354,7 +362,10 @@
                 importMetaAuthor: 'Author',
                 importMetaAddresses: 'Addresses',
                 importMetaLegend: 'Legend',
-                importMetaNone: '—'
+                importMetaNone: '—',
+                importLegendEmptySlot: '(No label in file)',
+                importAddressesMissingHint: 'Start and destination only appear here if those fields were filled when the JSON was exported. Older files may omit them; save again from Creator or re-export Download JSON.',
+                importLegendMissingHint: 'Legend colors always list below; empty slots mean the export had no typed label for that color.'
             },
             pt: {
                 pageTitle: 'Visualizador',
@@ -379,7 +390,7 @@
                 exportPngRouteFrom: 'Endereço de partida:',
                 exportPngRouteTo: 'Endereço de destino:',
                 importSectionTitle: 'Importar JSON',
-                importHint: 'Escolha um arquivo JSON exportado do mapa (mesmo formato de Baixar JSON no Criador ou Visualizador) para mostrar anotações, rota, endereços, legenda e autor no mapa abaixo.',
+                importHint: 'Escolha um arquivo JSON exportado do mapa para mostrar anotações, rota, endereços, legenda e autor no mapa abaixo.',
                 importJsonBtn: 'Importar JSON',
                 importMapAria: 'Mapa importado de arquivo JSON',
                 importErrorParse: 'Não foi possível ler o arquivo como JSON.',
@@ -387,7 +398,10 @@
                 importMetaAuthor: 'Autor',
                 importMetaAddresses: 'Endereços',
                 importMetaLegend: 'Legenda',
-                importMetaNone: '—'
+                importMetaNone: '—',
+                importLegendEmptySlot: '(Sem rótulo no arquivo)',
+                importAddressesMissingHint: 'Partida e destino só aparecem se estavam preenchidos na exportação. Arquivos antigos podem omitir; salve de novo no Criador ou exporte o JSON novamente.',
+                importLegendMissingHint: 'As cores da legenda aparecem abaixo; espaços vazios indicam que não havia texto digitado para aquela cor no momento da exportação.'
             }
         };
 
@@ -1222,6 +1236,21 @@
                     savedPreviewId: e.id,
                     savedPreviewTitle: e.title
                 };
+            } else if (!Array.isArray(raw.entries) && raw.annotations && typeof raw.annotations === 'object') {
+                const nested = raw.annotations;
+                base = { ...raw };
+                if (base.startAddress == null && nested.startAddress != null) base.startAddress = nested.startAddress;
+                if (base.endAddress == null && nested.endAddress != null) base.endAddress = nested.endAddress;
+                if (!base.legend && nested.legend) base.legend = nested.legend;
+                if (base.author == null && (nested.author || nested.userDisplayName)) {
+                    base.author = nested.author || nested.userDisplayName;
+                }
+                if (base.route == null && nested.route != null) base.route = nested.route;
+                if (!base.map && nested.map) base.map = nested.map;
+                if (!base.annotationColors && nested.annotationColors) base.annotationColors = nested.annotationColors;
+                if (!base.draw && nested.draw) base.draw = nested.draw;
+                if (!base.circles && nested.circles) base.circles = nested.circles;
+                if (!base.text && nested.text) base.text = nested.text;
             }
             const hasDraw = base.draw && Array.isArray(base.draw.features) && base.draw.features.length > 0;
             const hasCircles = base.circles && Array.isArray(base.circles.features) && base.circles.features.length > 0;
@@ -1257,13 +1286,18 @@
             importMapLayersReady = false;
         }
 
+        function addressFromPayload(v) {
+            if (v == null) return '';
+            return String(v).trim();
+        }
+
         function renderImportMetaPanel(payload) {
             const meta = document.getElementById('viewer-import-meta');
             if (!meta) return;
             const t = viewerTranslations[viewerLang] || viewerTranslations.en;
             const author = String(payload.author || payload.userDisplayName || '').trim();
-            const start = typeof payload.startAddress === 'string' ? payload.startAddress.trim() : '';
-            const end = typeof payload.endAddress === 'string' ? payload.endAddress.trim() : '';
+            const start = addressFromPayload(payload.startAddress);
+            const end = addressFromPayload(payload.endAddress);
             const leg = payload.legend && typeof payload.legend === 'object' ? payload.legend : {};
             const legendTitle = (leg.title && String(leg.title).trim()) || t.importMetaLegend;
             const items = Array.isArray(leg.items) ? leg.items : [];
@@ -1271,19 +1305,30 @@
                 ? payload.annotationColors
                 : ANNOTATION_COLORS;
             let legendRows = '';
-            items.forEach((item, i) => {
-                const lab = (item && typeof item.label === 'string') ? item.label.trim() : '';
-                if (!lab) return;
-                const col = (item && item.color) || palette[i] || '#95a5a6';
-                legendRows += `<div class="viewer-import-legend-row"><span class="viewer-import-legend-swatch" style="background:${escapeHtmlAttr(col)}"></span><span>${escapeHtmlAttr(lab)}</span></div>`;
-            });
-            const addrBlock = (!start && !end)
-                ? `<p>${escapeHtmlAttr(t.importMetaNone)}</p>`
-                : `${start ? `<p><strong>${escapeHtmlAttr(t.exportPngRouteFrom)}</strong> ${escapeHtmlAttr(start)}</p>` : ''}${end ? `<p><strong>${escapeHtmlAttr(t.exportPngRouteTo)}</strong> ${escapeHtmlAttr(end)}</p>` : ''}`;
+            if (items.length) {
+                items.forEach((item, i) => {
+                    const lab = (item && typeof item.label === 'string') ? item.label.trim() : '';
+                    const col = (item && item.color) || palette[i] || '#95a5a6';
+                    const display = lab || t.importLegendEmptySlot;
+                    legendRows += `<div class="viewer-import-legend-row"><span class="viewer-import-legend-swatch" style="background:${escapeHtmlAttr(col)}"></span><span>${escapeHtmlAttr(display)}</span></div>`;
+                });
+            } else {
+                legendRows = `<p>${escapeHtmlAttr(t.importMetaNone)}</p>`;
+            }
+            legendRows += `<p class="viewer-import-legend-hint">${escapeHtmlAttr(t.importLegendMissingHint)}</p>`;
+            let addrBlock = '';
+            if (!start && !end) {
+                addrBlock = `<p>${escapeHtmlAttr(t.importMetaNone)}</p><p class="viewer-import-address-hint">${escapeHtmlAttr(t.importAddressesMissingHint)}</p>`;
+            } else {
+                addrBlock = `${start ? `<p><strong>${escapeHtmlAttr(t.exportPngRouteFrom)}</strong> ${escapeHtmlAttr(start)}</p>` : ''}${end ? `<p><strong>${escapeHtmlAttr(t.exportPngRouteTo)}</strong> ${escapeHtmlAttr(end)}</p>` : ''}`;
+                if (!start || !end) {
+                    addrBlock += `<p class="viewer-import-address-hint">${escapeHtmlAttr(t.importAddressesMissingHint)}</p>`;
+                }
+            }
             meta.innerHTML = `
                 <div class="viewer-import-meta-block"><h3>${escapeHtmlAttr(t.importMetaAuthor)}</h3><p>${author ? escapeHtmlAttr(author) : escapeHtmlAttr(t.importMetaNone)}</p></div>
                 <div class="viewer-import-meta-block"><h3>${escapeHtmlAttr(t.importMetaAddresses)}</h3>${addrBlock}</div>
-                <div class="viewer-import-meta-block"><h3>${escapeHtmlAttr(legendTitle)}</h3>${legendRows || `<p>${escapeHtmlAttr(t.importMetaNone)}</p>`}</div>
+                <div class="viewer-import-meta-block"><h3>${escapeHtmlAttr(legendTitle)}</h3>${legendRows}</div>
             `;
         }
 

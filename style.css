@@ -421,6 +421,7 @@ button { background: #0096FF; color: white; border: none; cursor: pointer; font-
 }
 
 #calc-route,
+#get-coordinates-btn,
 #undo-annotation-btn,
 #redo-annotation-btn,
 #save-shapes-png,
@@ -436,6 +437,7 @@ button { background: #0096FF; color: white; border: none; cursor: pointer; font-
 }
 
 #calc-route,
+#get-coordinates-btn,
 #undo-annotation-btn,
 #redo-annotation-btn,
 #save-shapes-png,
@@ -459,6 +461,7 @@ button { background: #0096FF; color: white; border: none; cursor: pointer; font-
 }
 
 #calc-route:hover,
+#get-coordinates-btn:hover,
 #save-shapes-png:hover,
 #clear-annotations-btn:hover,
 #undo-annotation-btn:hover,
@@ -469,6 +472,19 @@ button { background: #0096FF; color: white; border: none; cursor: pointer; font-
 #redo-regions-btn:hover {
     background: #0d6efd;
     color: #ffffff;
+}
+
+/* Keep route and save primary by default, then invert on hover. */
+#calc-route,
+#save-shapes-png {
+    background: #0d6efd;
+    color: #ffffff;
+}
+
+#calc-route:hover,
+#save-shapes-png:hover {
+    background: #ffffff;
+    color: #0d6efd;
 }
 
 .route-hint {

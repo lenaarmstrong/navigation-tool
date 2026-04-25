@@ -42,6 +42,7 @@
             <div class="search-results" id="end-results"></div>
         </div>
         <button id="calc-route" style="margin-top: 10px;">Visualize Route</button>
+        <button id="get-coordinates-btn" style="margin-top: 8px;">Get Coordinates</button>
         </div>
         </div>
 
@@ -186,13 +187,17 @@
     const translations = {
         en: {
             header: 'Tell Your Navigation Stories on the Map',
-            startPlaceholder: 'Starting Address',
-            endPlaceholder: 'Destination Address',
+            startPlaceholder: 'Starting address (or coordinates)',
+            endPlaceholder: 'Destination address (or coordinates)',
             driving: 'Driving',
             walking: 'Walking',
             cycling: 'Cycling',
             visualizeRouteHeading: 'Visualize A Route',
             visualizeRoute: 'Visualize Route',
+            getCoordinates: 'Get Coordinates',
+            getCoordinatesActive: 'Click map to get coordinates',
+            pickCoordinatesHint: 'Click on the map to drop a point and capture coordinates.',
+            errCoordsNeeded: 'Please enter valid coordinates in both fields (lat,lng or lng,lat).',
             routesTab: 'Routes',
             regionsTab: 'Regions',
             hint: 'Use the top-right toolbar to draw annotations.',
@@ -248,13 +253,17 @@
         },
         pt: {
             header: 'Compartilhe suas histórias de navegação no mapa',
-            startPlaceholder: 'Endereço de partida',
-            endPlaceholder: 'Endereço de destino',
+            startPlaceholder: 'Endereço inicial (ou coordenadas)',
+            endPlaceholder: 'Endereço de destino (ou coordenadas)',
             driving: 'Dirigir',
             walking: 'Caminhar',
             cycling: 'Andar de bicicleta',
             visualizeRouteHeading: 'Visualizar uma rota',
             visualizeRoute: 'Visualizar Rota',
+            getCoordinates: 'Obter Coordenadas',
+            getCoordinatesActive: 'Clique no mapa para obter coordenadas',
+            pickCoordinatesHint: 'Clique no mapa para soltar um ponto e capturar as coordenadas.',
+            errCoordsNeeded: 'Digite coordenadas válidas nos dois campos (lat,lng ou lng,lat).',
             routesTab: 'Rotas',
             regionsTab: 'Regiões',
             hint: 'Use a barra de ferramentas no canto superior direito para desenhar anotações.',
@@ -325,6 +334,9 @@
     let creatorPreviewGallery = [];
     let mapSnapshotDataUrl = null;
     let selectedPreviewGalleryId = null;
+    let coordinatesPickModeActive = false;
+    let coordinatesPickMarker = null;
+    let coordinateFillTarget = 'start';
 
     function applyLanguage(lang) {
         const t = translations[lang];
@@ -338,6 +350,11 @@
         document.querySelector('.profile-btn[data-profile="cycling"]').textContent = t.cycling;
         document.getElementById('visualize-route-heading').textContent = t.visualizeRouteHeading;
         document.getElementById('calc-route').textContent = t.visualizeRoute;
+        const getCoordsBtn = document.getElementById('get-coordinates-btn');
+        if (getCoordsBtn) {
+            getCoordsBtn.textContent = coordinatesPickModeActive ? t.getCoordinatesActive : t.getCoordinates;
+            getCoordsBtn.title = t.pickCoordinatesHint;
+        }
         const hintText = document.getElementById('hint-text');
         if (hintText) hintText.textContent = t.hint;
         document.getElementById('annotations-heading').textContent = t.annotationsHeading;
@@ -524,6 +541,36 @@
             routeEndMarker.remove();
             routeEndMarker = null;
         }
+    }
+
+    function parseCoordinateInput(inputText) {
+        const text = String(inputText || '').trim();
+        if (!text) return null;
+        const parts = text.split(',').map((p) => p.trim());
+        if (parts.length !== 2) return null;
+        const a = Number(parts[0]);
+        const b = Number(parts[1]);
+        if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+
+        // Normalize to [lng, lat].
+        // Prefer lat,lng (the UI format), and only treat as lng,lat when unambiguous.
+        if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return [b, a];
+        if (Math.abs(a) > 90 && Math.abs(a) <= 180 && Math.abs(b) <= 90) return [a, b];
+        return null;
+    }
+
+    function formatLatLng(lngLat) {
+        const lat = Number(lngLat.lat).toFixed(6);
+        const lng = Number(lngLat.lng).toFixed(6);
+        return `${lat},${lng}`;
+    }
+
+    function setCoordinatesPickMode(active) {
+        coordinatesPickModeActive = !!active;
+        const btn = document.getElementById('get-coordinates-btn');
+        const t = translations[currentLang];
+        if (btn) btn.textContent = coordinatesPickModeActive ? t.getCoordinatesActive : t.getCoordinates;
+        map.getCanvas().style.cursor = coordinatesPickModeActive ? 'crosshair' : '';
     }
 
     map.on('load', () => {
@@ -2033,6 +2080,20 @@
         if (!input || !resultsEl) return;
         let debounce = null;
 
+        function setSelectedAddressMeta(feature) {
+            const center = feature && Array.isArray(feature.center) ? feature.center : null;
+            if (!center || center.length < 2) {
+                delete input.dataset.selectedPlaceName;
+                delete input.dataset.selectedLng;
+                delete input.dataset.selectedLat;
+                return;
+            }
+            const placeName = String(feature.place_name || feature.text || input.value || '').trim();
+            input.dataset.selectedPlaceName = placeName;
+            input.dataset.selectedLng = String(center[0]);
+            input.dataset.selectedLat = String(center[1]);
+        }
+
         function showSuggestions(features) {
             resultsEl.innerHTML = '';
             resultsEl.classList.remove('active');
@@ -2053,8 +2114,14 @@
                 const name = f.place_name || f.text || '';
                 item.innerHTML = `<div class="result-place">${f.text || ''}</div><div class="result-address">${name}</div>`;
                 item.dataset.placeName = name;
+                item.dataset.lng = String(Array.isArray(f.center) ? f.center[0] : '');
+                item.dataset.lat = String(Array.isArray(f.center) ? f.center[1] : '');
                 item.onclick = () => {
                     input.value = item.dataset.placeName || '';
+                    setSelectedAddressMeta({
+                        place_name: item.dataset.placeName || '',
+                        center: [Number(item.dataset.lng), Number(item.dataset.lat)]
+                    });
                     resultsEl.classList.remove('active');
                     resultsEl.innerHTML = '';
                 };
@@ -2064,6 +2131,9 @@
         }
 
         input.addEventListener('input', () => {
+            delete input.dataset.selectedPlaceName;
+            delete input.dataset.selectedLng;
+            delete input.dataset.selectedLat;
             clearTimeout(debounce);
             const q = input.value.trim();
             if (!q) {
@@ -2095,6 +2165,10 @@
             } else if (e.key === 'Enter' && selected) {
                 e.preventDefault();
                 input.value = selected.dataset.placeName || '';
+                setSelectedAddressMeta({
+                    place_name: selected.dataset.placeName || '',
+                    center: [Number(selected.dataset.lng), Number(selected.dataset.lat)]
+                });
                 resultsEl.classList.remove('active');
                 resultsEl.innerHTML = '';
             }
@@ -2115,6 +2189,8 @@
 
     // Geocoding helper – returns [lng, lat] or null if address not found
     async function getCoords(address) {
+        const coord = parseCoordinateInput(address);
+        if (coord) return coord;
         const trimmed = (address || '').trim();
         if (!trimmed) return null;
         const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${mapboxgl.accessToken}&country=br`;
@@ -2124,8 +2200,24 @@
         return data.features[0].center;
     }
 
+    function getSelectedInputCoords(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return null;
+        const selectedName = String(input.dataset.selectedPlaceName || '').trim();
+        const currentText = String(input.value || '').trim();
+        if (!selectedName || selectedName !== currentText) return null;
+        const lng = Number(input.dataset.selectedLng);
+        const lat = Number(input.dataset.selectedLat);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+        return [lng, lat];
+    }
+
     // Route: geocode whatever the user typed (or selected) in each box and visualize the route
     async function runRouteVisualization(requireInputs) {
+        if (coordinatesPickMarker) {
+            coordinatesPickMarker.remove();
+            coordinatesPickMarker = null;
+        }
         var startText = (document.getElementById('start').value || '').trim();
         var endText = (document.getElementById('end').value || '').trim();
 
@@ -2135,22 +2227,26 @@
             return;
         }
 
-        var start = await getCoords(startText);
-        var end = await getCoords(endText);
+        var start = getSelectedInputCoords('start') || await getCoords(startText);
+        var end = getSelectedInputCoords('end') || await getCoords(endText);
 
         if (!start) {
-            alert(currentLang === 'en' ? translations.en.errStart : translations.pt.errStart);
+            const t = translations[currentLang];
+            const looksLikeCoord = startText.includes(',');
+            alert(looksLikeCoord ? t.errCoordsNeeded : t.errStart);
             return;
         }
         if (!end) {
-            alert(currentLang === 'en' ? translations.en.errEnd : translations.pt.errEnd);
+            const t = translations[currentLang];
+            const looksLikeCoord = endText.includes(',');
+            alert(looksLikeCoord ? t.errCoordsNeeded : t.errEnd);
             return;
         }
 
         var profile = getSelectedProfile();
         var url = 'https://api.mapbox.com/directions/v5/mapbox/' + profile + '/' +
             start[0] + ',' + start[1] + ';' + end[0] + ',' + end[1] +
-            '?geometries=geojson&access_token=' + mapboxgl.accessToken;
+            '?geometries=geojson&overview=full&access_token=' + mapboxgl.accessToken;
 
         try {
             var response = await fetch(url);
@@ -2204,6 +2300,34 @@
     document.getElementById('calc-route').onclick = async () => {
         runRouteVisualization(true);
     };
+
+    document.getElementById('get-coordinates-btn').addEventListener('click', () => {
+        setCoordinatesPickMode(!coordinatesPickModeActive);
+    });
+
+    map.on('click', (e) => {
+        if (!coordinatesPickModeActive) return;
+        const formatted = formatLatLng(e.lngLat);
+        const startInput = document.getElementById('start');
+        const endInput = document.getElementById('end');
+        if (coordinateFillTarget === 'start') {
+            if (startInput) startInput.value = formatted;
+            coordinateFillTarget = 'end';
+        } else {
+            if (endInput) endInput.value = formatted;
+            coordinateFillTarget = 'start';
+        }
+
+        if (coordinatesPickMarker) {
+            coordinatesPickMarker.setLngLat(e.lngLat);
+        } else {
+            coordinatesPickMarker = new mapboxgl.Marker({ color: '#6A5ACD' })
+                .setLngLat(e.lngLat)
+                .addTo(map);
+        }
+
+        setCoordinatesPickMode(false);
+    });
 </script>
 
 </body>
